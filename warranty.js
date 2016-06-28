@@ -494,7 +494,7 @@ let date = dateObj.getMonth().toString()+"-"+
              coverageMiles: element.CoverageMiles,
              downpayment: downpayment,
              halfTermInstallment: {
-               numberOfMonths: halfTermInstallmentTerm,
+               numberOfPayments: halfTermInstallmentTerm,
                monthlyPrice: halfTermInstallmentPrice
              },
              quarterTermInstallment: {
