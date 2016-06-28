@@ -1,0 +1,32 @@
+{
+  "name": "uins-backend",
+  "version": "0.0.1",
+  "description": "Backend for Uber Inspection Application",
+  "main": "api.js",
+  "scripts": {
+    "test": "node api.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://QuantumDesign@bitbucket.org/QuantumDesign/illbuyit-backend-node.git"
+  },
+  "keywords": [
+    "REST"
+  ],
+  "author": "Rostyslav Drutsky",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/QuantumDesign/illbuyit-backend-node#readme",
+  "dependencies": {
+    "apn": "^1.7.6",
+    "body-parser": "^1.15.1",
+    "crypto": "0.0.3",
+    "express": "^4.13.4",
+    "mysql": "^2.10.2",
+    "node-uuid": "^1.4.7",
+    "requestify": "^0.1.17",
+    "sequelize": "^3.23.0",
+    "sqlite3": "^3.1.3",
+    "stripe": "^4.6.0",
+    "swig": "^1.4.2"
+  }
+}
