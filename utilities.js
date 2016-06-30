@@ -15,5 +15,11 @@ function inspectionId(inspection) {
   return id;
 }
 
+function roundToCentUp(cost) {
+    return Math.ceil(cost*100)/100
+}
+
+
 module.exports.sendError = sendError;
 module.exports.inspectionId = inspectionId;
+module.exports.roundToCentUp = roundToCentUp;

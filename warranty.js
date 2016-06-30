@@ -404,110 +404,126 @@ function installmentPaymentDescription(req) {
 
 router.get("/plans", (req, res) => {
   // For test purposes
-  /*res.json({"plans":[
-    {"PlanIdentifier":"ba91e026-227b-4378-882a-4e22567e954d",
-    "Cost":1762,"CoverageMonths":24,"CoverageMiles":40000},
-    {"PlanIdentifier":"1c3e4931-b6dc-4e97-a54a-6a9eceed75fc",
-    "Cost":2153,"CoverageMonths":48,"CoverageMiles":75000},
-    {"PlanIdentifier":"e9c2c8b7-0875-4548-a036-ac82f721bdd5",
-    "Cost":2632,"CoverageMonths":48,"CoverageMiles":100000},
-    {"PlanIdentifier":"6018e075-73d6-4ecf-b682-b5e8452bdeae",
-    "Cost":2213,"CoverageMonths":60,"CoverageMiles":75000},
-    {"PlanIdentifier":"e57033f7-9345-44e9-854a-0a63ebc77c0a",
-    "Cost":2729,"CoverageMonths":60,"CoverageMiles":100000},
-    {"PlanIdentifier":"ba5eb07f-a574-4aba-947b-a6fe496b321b",
-    "Cost":1909,"CoverageMonths":36,"CoverageMiles":60000},
-    {"PlanIdentifier":"aae72f65-453f-4931-9157-2f2f4ad65d02",
-    "Cost":2026,"CoverageMonths":36,"CoverageMiles":75000},
-    {"PlanIdentifier":"1464c149-d27a-4e24-af45-414451f2ee33",
-    "Cost":2536,"CoverageMonths":36,"CoverageMiles":100000}
-  ],
-  "planRequestId":"TESTPlanID"
-  });
+  /*
+  res.json({"plans":[{"planId":"28ee194c-736b-48f7-aef9-39440d85db19","cost":1657,"coverageMonths":24,"coverageMiles":40000,"financeOptions":[{"downpayment":1657,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":173.2,"numberOfMonths":6,"monthlyPrice":259.8},{"downpayment":176.7,"numberOfMonths":12,"monthlyPrice":132.53}]},{"planId":"94146fae-86a4-4e1b-aec0-996d9e494153","cost":2022,"coverageMonths":48,"coverageMiles":75000,"financeOptions":[{"downpayment":2022,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":213.2,"numberOfMonths":12,"monthlyPrice":159.9},{"downpayment":219.2,"numberOfMonths":18,"monthlyPrice":109.6},{"downpayment":227.2,"numberOfMonths":24,"monthlyPrice":85.2}]},{"planId":"9be3e2f6-a2e4-4147-8cd2-fd99e372f2a7","cost":2318,"coverageMonths":48,"coverageMiles":100000,"financeOptions":[{"downpayment":2318,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":242.8,"numberOfMonths":12,"monthlyPrice":182.1},{"downpayment":248.8,"numberOfMonths":18,"monthlyPrice":124.4},{"downpayment":256.8,"numberOfMonths":24,"monthlyPrice":96.3}]},{"planId":"56ab93a9-f8f0-48ec-8d51-3ce4f1c9d1e3","cost":2083,"coverageMonths":60,"coverageMiles":75000,"financeOptions":[{"downpayment":2083,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":219.3,"numberOfMonths":12,"monthlyPrice":164.48},{"downpayment":225.3,"numberOfMonths":18,"monthlyPrice":112.65},{"downpayment":233.3,"numberOfMonths":24,"monthlyPrice":87.49}]},{"planId":"7ea237c1-256d-453f-9932-5fffa38cd65e","cost":2399,"coverageMonths":60,"coverageMiles":100000,"financeOptions":[{"downpayment":2399,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":250.9,"numberOfMonths":12,"monthlyPrice":188.18},{"downpayment":256.91,"numberOfMonths":18,"monthlyPrice":128.45},{"downpayment":264.91,"numberOfMonths":24,"monthlyPrice":99.34}]},{"planId":"85bae00f-11e3-458b-b7b6-cd06cd38f1c2","cost":1794,"coverageMonths":36,"coverageMiles":60000,"financeOptions":[{"downpayment":1794,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":190.4,"numberOfMonths":12,"monthlyPrice":142.8},{"downpayment":193.9,"numberOfMonths":15,"monthlyPrice":116.34},{"downpayment":196.4,"numberOfMonths":18,"monthlyPrice":98.2}]},{"planId":"789a2d74-d9a5-4f25-91a0-1ab0af8484ca","cost":1896,"coverageMonths":36,"coverageMiles":75000,"financeOptions":[{"downpayment":1896,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":200.61,"numberOfMonths":12,"monthlyPrice":150.46},{"downpayment":204.11,"numberOfMonths":15,"monthlyPrice":122.46},{"downpayment":206.61,"numberOfMonths":18,"monthlyPrice":103.31}]},{"planId":"26d978d5-240b-4add-9d4e-469dd8feb7f2","cost":2232,"coverageMonths":36,"coverageMiles":100000,"financeOptions":[{"downpayment":2232,"numberOfMonths":0,"monthlyPrice":0},{"downpayment":234.2,"numberOfMonths":12,"monthlyPrice":175.65},{"downpayment":237.7,"numberOfMonths":15,"monthlyPrice":142.62},{"downpayment":240.2,"numberOfMonths":18,"monthlyPrice":120.1}]}],"planRequestId":"975c0101-775e-4aa8-8bed-a7daf758dac2"});
   return;
-*/
-let vin = req.query.vin
-if (! vin ) {
-  console.log("No vin provided");
-  utils.sendError(res, "No vin provided"); return;
-}
-let mileage = req.query.mileage
-if (! mileage ) {
-  console.log("No vin mileage");
-  utils.sendError(res, "No vin mileage"); return;
-}
-
-let dateObj = new Date();
-let date = dateObj.getMonth().toString()+"-"+
-  dateObj.getDate().toString()+"-"+
-  dateObj.getFullYear().toString();
-  console.log("Purchase date: ", date, "VIN ", vin);
-  requestify.get(MBPCredentials.Server + "/api/getquote.json", {
-    params: {
-    Dealercode: MBPCredentials.Dealercode,
-    Accountusername: MBPCredentials.Accountusername,
-    AccountPassword: MBPCredentials.AccountPassword,
-    VIN: vin, //"1FD7X2A66BEA98347",
-    Mileage:mileage, //10,
-    PurchasePrice:6000,
-    PurchaseDate:date, //"4-2-2016",
-    Statustype:"used",
-    format:"json"
+  */
+  let vin = req.query.vin
+  if (! vin ) {
+    console.log("No vin provided");
+    utils.sendError(res, "No vin provided"); return;
   }
-  }).then((response) => {
-    let jsonBody = response.getBody();
-    // console.log(jsonBody);
-    let errors = jsonBody.Errors;
-    // console.log(errors);
-    if (errors !== undefined) {
-      console.log(errors)
-      processMBPIErrors(errors, res);
-      return;
+  let mileage = req.query.mileage
+  if (! mileage ) {
+    console.log("No vin mileage");
+    utils.sendError(res, "No vin mileage"); return;
+  }
+
+  let dateObj = new Date();
+  let date = dateObj.getMonth().toString()+"-"+
+    dateObj.getDate().toString()+"-"+
+    dateObj.getFullYear().toString();
+    console.log("Purchase date: ", date, "VIN ", vin);
+    requestify.get(MBPCredentials.Server + "/api/getquote.json", {
+      params: {
+      Dealercode: MBPCredentials.Dealercode,
+      Accountusername: MBPCredentials.Accountusername,
+      AccountPassword: MBPCredentials.AccountPassword,
+      VIN: vin, //"1FD7X2A66BEA98347",
+      Mileage:mileage, //10,
+      PurchasePrice:6000,
+      PurchaseDate:date, //"4-2-2016",
+      Statustype:"used",
+      format:"json"
     }
-    let queryResponseId = jsonBody.ResponseID
-    // console.log(errors);
-    let programs = jsonBody.Programs
-    // console.log(programs)
-    if (programs === undefined) {
-      utils.sendError(res, "No Programs for this vehicle");
-      return;
-    }
-    if ((programs[0] === undefined) || (programs[0].Plans === undefined)) {
-      utils.sendError(res, "No Plans for this vehicle");
-      return;
-    }
-    let allPlans = programs[0].Plans
-    // console.log(allPlans);
-    let plans = allPlans.reduce((sum, element) => {
-      if (element.PlanTypeDescription === "PREMIUM") {
-        let cost = element.DealerCost + 1000
-        let downpayment = cost/10
-        let installmentPrice = cost - downpayment
-        let halfTermInstallmentTerm =  (element.CoverageMonths/2)-1
-        let halfTermInstallmentPrice =  Math.ceil(installmentPrice/halfTermInstallmentTerm*100)/100
-        let quarterTermInstallmentTerm =  (element.CoverageMonths/4)-1
-        let quarterTermInstallmentPrice =  Math.ceil(installmentPrice/quarterTermInstallmentTerm*100)/100
+    }).then((response) => {
+      let jsonBody = response.getBody();
+      // console.log(jsonBody);
+      let errors = jsonBody.Errors;
+      // console.log(errors);
+      if (errors !== undefined) {
+        console.log(errors)
+        processMBPIErrors(errors, res);
+        return;
+      }
+      let queryResponseId = jsonBody.ResponseID
+      // console.log(errors);
+      let programs = jsonBody.Programs
+      // console.log(programs)
+      if (programs === undefined) {
+        utils.sendError(res, "No Programs for this vehicle");
+        return;
+      }
+      if ((programs[0] === undefined) || (programs[0].Plans === undefined)) {
+        utils.sendError(res, "No Plans for this vehicle");
+        return;
+      }
+      let allPlans = programs[0].Plans
+      // console.log(allPlans);
+      let plans = allPlans.reduce((sum, element) => {
+        if (element.PlanTypeDescription === "PREMIUM") {
+          let cost = element.DealerCost + 1000 // As agreed with Surge. TODO: move 1000 to constants
           sum.push({
              planId: element.PlanIdentifier,
              cost: cost, // From Surge
              coverageMonths: element.CoverageMonths,
              coverageMiles: element.CoverageMiles,
-             downpayment: downpayment,
-             halfTermInstallment: {
-               numberOfPayments: halfTermInstallmentTerm,
-               monthlyPrice: halfTermInstallmentPrice
-             },
-             quarterTermInstallment: {
-               numberOfMonths: quarterTermInstallmentTerm,
-               monthlyPrice: quarterTermInstallmentPrice
-             }
+             financeOptions: installmentdetails(cost, element.CoverageMonths)
           });
-        }
-      return sum;
-    }, []);
-    res.json({plans: plans, planRequestId:queryResponseId});
-  });
+          }
+        return sum;
+      }, []);
+      res.json({plans: plans, planRequestId:queryResponseId});
+    });
 });
+
+function installmentdetails(cost, coverageMonths) {
+  let feesDict = { // maps installment duration to fee price
+    6: 75,
+    12: 110,
+    15: 145,
+    18: 170,
+    24: 250
+  }
+  /* Fiance terms depending on warranty terms
+  One year  - 6 months
+  Two years - 6 months and 12 months
+  Three years - 12 months, 15 months, 18 months
+  Four years - 12 months, 18 months, 24 months
+  Five years - 12 months, 18 months, 24 months
+  */
+  let financeTermDict = {
+    12: [6],
+    24: [6, 12],
+    36: [12, 15, 18],
+    48: [12, 18, 24],
+    60: [12, 18, 24]
+  }
+  let fullPayment = { // Full payment, no finance
+    downpayment: cost,
+    numberOfMonths: 0,
+    monthlyPrice: 0
+  };
+  if (!(coverageMonths in financeTermDict)) {
+    console.log("Warning! Finance Terms not found");
+    return [fullPayment];
+  }
+  let financeTerms = financeTermDict[coverageMonths];
+  let result = financeTerms.reduce((previous, element) => {
+    if (!(element in feesDict)) return previous;
+    let fee = feesDict[element];
+    let totalCost = cost+fee; // Fee should be included to all costs
+    let downpayment  = totalCost * 0.1 ; // As argeed. TODO: make it setting
+    let costToFinance = (totalCost-downpayment)/element;
+    previous.push({
+      downpayment    : utils.roundToCentUp(downpayment),
+      numberOfMonths : element,
+      monthlyPrice   : utils.roundToCentUp(costToFinance)
+    });
+    return previous;
+  }, [fullPayment]);
+  return result;
+}
 
 function processMBPIErrors (errors, res) {
   console.log("Processing: " + errors)
