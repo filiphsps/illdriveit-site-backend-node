@@ -94,7 +94,8 @@ function verifyVehiclePost(req, res, next) {
    if (! Boolean(req.body.paymentOption.downpayment)) {
      utils.sendError(res, "No paymentOption.downpayment"); return;
    }
-   if (! Boolean(req.body.paymentOption.number_of_months)) {
+   if ((req.body.paymentOption.number_of_months === undefined) ||
+       (req.body.paymentOption.number_of_months === null) ) {
      utils.sendError(res, "No paymentOption.number_of_months"); return;
    }
    if (! Boolean(req.body.paymentOption.downpaymentCard)) {
@@ -198,6 +199,24 @@ function cardType(accountNumber) {
   return "Unknown"
 }
 
+function isFullCost(paymentOption, customerPrice) {
+  return ((paymentOption.downpayment === customerPrice) &&
+        (paymentOption.number_of_months === 0));
+}
+
+function formLender(paymentOption, customerPrice, firstPaymentDateString) {
+  if (isFullCost(paymentOption, customerPrice)) {
+    return null;
+  } else {
+    return {
+      DealerPaysMBPFinanceServiceFee: false,
+      DownPaymentAmount: paymentOption.downpayment,
+      FirstPaymentDate: firstPaymentDateString,
+      MBPFinancePlanType: numberToStringTerm(paymentOption.number_of_months)
+    };
+  }
+}
+
 router.post("/purchase",
        verifyVehiclePost,
        (req, res) => {
@@ -245,13 +264,8 @@ router.post("/purchase",
     Plans: [{
       PlanIdentifier: planId,
       CustomerPrice: customerPrice,
-      Lender: {
-        DealerPaysMBPFinanceServiceFee: false,
-        DownPaymentAmount: paymentOption.downpayment,
-        FirstPaymentDate: firstPaymentDateString,
-        MBPFinancePlanType: numberToStringTerm(paymentOption.number_of_months)
-      },
-      MBPFinanceAccountPayments: [downpaymentCard, financeCard]
+      Lender: formLender(paymentOption, customerPrice, firstPaymentDateString),
+      MBPFinanceAccountPayments: (isFullCost(paymentOption,customerPrice) ? null : [downpaymentCard, financeCard])
     }]
   };
   console.log(JSON.stringify(objectToRequest));
@@ -278,12 +292,28 @@ router.post("/purchase",
     }*/
     let warrantyJsonBody = jsonBody;
     db.saveWarranty(warrantyJsonBody, warrantyRequest, (warrantyDBObject) => {
+      if ((paymentOption.downpayment === req.body.customerPrice) &&
+        (paymentOption.number_of_months === 0)) {
+        console.log("Charging downpayment via Stripe");
+        chargeDownpaymentViaStripe(req, res, () => {
           res.send(warrantyJsonBody);
+        }, (stripeDownpaymentError) => {
+          voidWarranty(warrantyDBObject.ResponseID,
+             warrantyDBObject.ContractNumber, () => {
+               destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, stripeDownpaymentError)
+             }, (voidWarrantyError) => {
+               destroyWarrantyDBReconrAndSendError(res, warrantyDBObject,
+                  stripeDownpaymentError+" "+voidWarrantyError)
+             })
+      }, (error) => {
+        utils.sendError(res, error);
+      })
+      } else {
+        res.send(warrantyJsonBody);
+      }
     }, (error) => {
       utils.sendError(res, error);
-    })
-  }, (error) => {
-    utils.sendError(res, error);
+    });
   });
 })
 
@@ -328,33 +358,29 @@ function voidWarranty (purchaseResponseID, contractNumber, success, failed) {
 }
 
 function chargeDownpaymentViaStripe(req, res, success, failed) {
-  let stripeToken = req.body.payments.downpaymentStripeToken;
-  if (typeof stripeToken === 'undefined') {
-    console.log("No downpayment token - no payment!");
-    success();
-    return;
-  }
+  // let stripeToken = req.body.payments.downpaymentStripeToken;
+  // if (typeof stripeToken === 'undefined') {
+  //   console.log("No downpayment token - no payment!");
+  //   success();
+  //   return;
+  // }
   let chargeObj = undefined
-  let downpayment = req.body.payments.downpayment;
+  let downpayment = req.body.paymentOption.downpayment*100;
   let paymentDescriptionVal = paymentDescription(req);
-  if ((req.body.payments.monthlyPayment !==0 ) &&
-      (req.body.payments.installmentStripeToken === stripeToken) ) {
-    // Use created customer in this case because Stripe token cannot be used twice
-    chargeObj = {
-      amount: downpayment, // amount in cents, again
-      currency: "usd",
-      customer: req.body.subscriptionCustomer,
-      description: paymentDescriptionVal
-    };
-  } else {
-    chargeObj = {
-      amount: downpayment, // amount in cents, again
-      currency: "usd",
-      source: stripeToken,
-      description: paymentDescriptionVal
-    };
+  let card = req.body.paymentOption.downpaymentCard;
+  chargeObj = {
+    amount: downpayment, // amount in cents, again
+    currency: "usd",
+    source: {
+       exp_month:card.expiration_month,
+       exp_year:card.expiration_year,
+        number:card.account_number,
+         object: "card",
+          cvc: card.cvv
+    },
+    description: paymentDescriptionVal
   }
-  console.log("Payments Obj " + JSON.stringify(req.body.payments));
+  // console.log("Payments Obj " + JSON.stringify(req.body.paymentOption));
   let charge = stripe.charges.create(chargeObj, (err, charge) => {
     if (err) {
       // The card has been declined
@@ -368,140 +394,11 @@ function chargeDownpaymentViaStripe(req, res, success, failed) {
   });
 }
 
-function createInstallmentPlanViaStripe(req, res, warrantyDBObject, success, failed) {
-  console.log("Payments Obj " + JSON.stringify(req.body.payments));
-  let monthlyPayment = req.body.payments.monthlyPayment;
-  if (monthlyPayment === 0) { success(undefined); return; }
-  let numberOfMonths = req.body.payments.numberOfMonths;
-  let stripeToken = req.body.payments.installmentStripeToken;
-  if (typeof stripeToken === 'undefined') {
-    let errorStr = "No installmentStripeToken token - no installment!"
-    console.log(errorStr);
-    failed(errorStr);
-    return;
-  }
-  let paymentDescriptionVal = installmentPaymentDescription(req);
-  let planName = "$" + monthlyPayment/100 +
-          "x" + numberOfMonths +" months"
-  let planId = uuid.v4();
-  createSubscriptionPlan(monthlyPayment, planName, planId, (plan) => {
-    createCustomer(stripeToken, paymentDescriptionVal,
-       req.body.warrantyRequest.email, (customer) => {
-         createSubscription(plan.id, customer.id, (subscription) => {
-           warrantyDBObject.installmentPlanId = subscription.id;
-           warrantyDBObject.periodsToCancel = numberOfMonths;
-           warrantyDBObject.save().then( (warrantyDBObject) => {
-              success(subscription);
-           }, (error) => {
-             console.log("Cannot store subscription into DB");
-             deleteSubscriptionRecursivelly(subscription.id, () => {
-               failed("Cannot store subscription in DB: " + error);
-               return;
-             })
-           })
-
-         }, (error) => {
-           stripe.customers.del(customer.id, (err, confirmation) => {
-             // Does not really need to check customer deletion result
-             stripe.plans.del(planId, (err, confirmation) => {
-               // Does not really need to check plan deletion result
-               let errorText = "Cannot create the customer! (" + error + ")"
-               console.log(errorText);
-               failed(errorText);
-             });
-           })
-         })
-    }, (error) => {
-         stripe.plans.del(planId, (err, confirmation) => {
-           // Does not really need to check plan deletion
-           let errorText = "Cannot create the customer! (" + error + ")"
-           console.log(errorText);
-           failed(errorText);
-         });
-       } );
-  }, (error) => {
-    let errorText = "Cannot create the subscription plan! (" + error + ")"
-    console.log(errorText);
-    failed(errorText)
-  });
-}
-
-function createCustomer(source, description, email, success, failed) {
-  stripe.customers.create({
-    description: description,
-    email: email,
-    source: source
-  }, (err, customer) => {
-    if (err) { failed(err.raw); return; }
-    success(customer);
-  });
-}
-
-function createSubscriptionPlan(chargeAmount, planName, planId, success, failed ) {
-  stripe.plans.create({
-    amount: chargeAmount,
-    interval: "day",//"month", // Should be month in production
-    name: planName,
-    currency: "usd",
-    id: planId,
-    trial_period_days : 1 // Should be 30 in production
-  }, (err, plan) => {
-    if (err) { failed(err.raw); return; }
-    success(plan);
-  });
-}
-
-function createSubscription(planId, customerId, success, failed) {
-  stripe.subscriptions.create({
-    customer: customerId,
-    plan: planId
-    // ,  trial_end: 0  // May be use it for tests?
-  }, (err, subscription) => {
-      if (err) { failed(err.raw); return; }
-      success(subscription);
-    }
-  );
-}
-
-function deleteSubscriptionRecursivelly(subscriptionId, finished) {
-    stripe.subscriptions.del(subscriptionId, (subscriptionserr, subscription) => {
-      if (subscriptionserr) {
-        console.log("Error removing subscription: ", subscriptionserr.raw);
-        finished(); return;
-      }
-      stripe.customers.del(subscription.customer, (customererr, confirmation) => {
-        // Does not really need to check customer deletion result
-        if (customererr) {
-          console.log("Error removing customer: ", customererr.raw);
-          finished(); return;
-        }
-        stripe.plans.del(subscription.plan.id, (planserr, confirmation) => {
-          // Does not really need to check plan deletion result
-          if (planserr) {
-            console.log("Error removing subscription plan: ", planserr.raw);
-          }
-          finished();
-        });
-      })
-    });
-}
-
-
 function paymentDescription(req) {
   let warrantyRequest = req.body.warrantyRequest
-  var paymentDescription = "Downpayment on warranty of " +
-   warrantyRequest.make + " " + warrantyRequest.model + " for " +
+  var paymentDescription = "Downpayment on warranty for " +
    warrantyRequest.first_name + " " + warrantyRequest.last_name + " (" +
    warrantyRequest.email + ")";
-   return paymentDescription;
-}
-
-function installmentPaymentDescription(req) {
-  let warrantyRequest = req.body.warrantyRequest
-  var paymentDescription = /*"Installment on warranty of " +
-   warrantyRequest.make + " " + warrantyRequest.model + " for " +*/
-   warrantyRequest.first_name + " " + warrantyRequest.last_name + " (" +
-   warrantyRequest.email + ") subscription";
    return paymentDescription;
 }
 
@@ -635,116 +532,6 @@ function processMBPIErrors (errors, res) {
   }, "");
   console.log("Result error Desc: " + errorDescription);
   utils.sendError(res, errorDescription);
-}
-
-/// Stripe callbacks
-
-router.post("/stripecallback", checkIfRightMode, checkEvent,
- // refetchEvent, // production only
- (req, res) => {
-   // TODO: find a way to make this call idempotent.
-   // May be store last payment time and compare values
-  let event = req.body;
-  console.log("Stripe callback: ", event);
-  let invoice = event.data.object
-  if ((invoice === undefined) || (invoice === null)) {
-    console.log("No invoice found");
-    res.sendStatus(200);
-    return;
-  }
-  let subscriptionId = invoice.subscription
-  let subscriptionPaid = invoice.paid
-  if ((subscriptionPaid === false) ||
-      (subscriptionId === undefined) ||
-      (subscriptionId === null)) {
-        console.log("No subscriptionId found, skeep it.");
-        res.sendStatus(200);
-        return;
-      }
-  db.findWarrantyBySubscriptionId(subscriptionId, (warrantyObject) => {
-    let paymentsLeft = warrantyObject.periodsToCancel;
-    console.log("Periods before: ", paymentsLeft);
-    paymentsLeft = paymentsLeft - 1;
-    console.log("Periods after: ", paymentsLeft);
-
-    warrantyObject.periodsToCancel = paymentsLeft;
-    if (paymentsLeft > 0) {
-      db.saveToDB(warrantyObject, (object) => {
-        res.sendStatus(200); return;
-      }, (error) => {
-        res.sendStatus(200); return;
-      })
-    } else {
-      console.log("Removing subscription ", subscriptionId);
-      deleteSubscriptionRecursivelly(subscriptionId, () => {
-        db.destroyWarrantyRecord(warrantyObject, () =>{
-           res.sendStatus(200);
-           return;
-        }, (error) => {
-          res.sendStatus(200);
-          return;
-        });
-      });
-    }
-  }, (error) => {
-    console.log(error);
-    res.sendStatus(200);
-  })
-  // res.sendStatus(200);
-});
-
-function checkIfRightMode(req, res, next) {
-  if (req.body.livemode === false) { // TODO: true for production
-    next()
-  } else {
-    res.sendStatus(200); // Skip this event
-  }
-}
-
-function checkEvent(req, res, next) {
-  // TODO: fetch event from server for production
-  let event = req.body
-  if (req.body.type === "charge.succeeded") {
-    let invoice = event.data.object
-    if ((invoice === undefined) || (invoice === null)) {
-      console.log("No invoice found");
-      res.sendStatus(200);
-      return;
-    }
-    let subscriptionId = invoice.subscription
-    db.isStripeEventProcessed(event.id, (found) => {
-      if (!found) {
-        db.addStripeEventToProcessed(event.id, (event) =>{
-          next();
-        }, (error) => {
-          console.log("addStripeEventToProcessed: ", error);
-          res.sendStatus(200);
-        })
-      } else {
-        res.sendStatus(200);
-      }
-    })
-  } else {
-    res.sendStatus(200); // Skip this event
-  }
-}
-
-function refetchEvent(req, res, next) {
-/*  if (req.body.livemode === false) { // TODO: true for production
-    next()
-  } else {
-    res.sendStatus(200); // Skip this event
-  }*/
-  stripe.events.retrieve(req.body.id, (err, event) => {
-    if (err !== null) {
-      console.log("This event is a fake!");
-      res.sendStatus(200); return;
-    } else {
-      console.log("This event is real.");
-      req.body = event;
-      next();
-    }
-  });
 }
 
 module.exports.router = router;
