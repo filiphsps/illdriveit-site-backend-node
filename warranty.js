@@ -21,6 +21,27 @@ router.get("/", (req, res) => {
   res.send("Hello from warranty")
 });
 
+router.post("/verifyzip", (req, res) => {
+  let zip = req.body.zip;
+  let mileage = req.body.mileage;
+  if (typeof mileage !== 'number') {
+    utils.sendError("wrong mileage")
+  }
+  if (typeof zip !== 'string') {
+    utils.sendError("wrong zip")
+  }
+  db.addZIP(zip, ()=> {
+    let isZipValid = validateZIP(zip)
+    res.json({valid: isZipValid})
+  }, (error) => {
+    res.json({valid: false, error: error });
+  });
+})
+
+function validateZIP(zip) {
+  return true
+}
+
 function verifyVehiclePost(req, res, next) {
    if ( (req.body.warrantyRequest === undefined) ||
         (req.body.warrantyRequest === null)) {

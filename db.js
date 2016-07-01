@@ -38,6 +38,12 @@ var Warranties = sequelize.define('Warranties', {
     }]
 });
 
+var Zip = sequelize.define('Zip', {
+  zip: Sequelize.STRING,
+}, {
+  tableName: 'site_zip', // this will define the table's name
+});
+
 var ProcessedStripeEvents = sequelize.define('ProcessedStripeEvents', {
   eventId: {
     type:Sequelize.STRING,
@@ -182,6 +188,14 @@ function addStripeEventToProcessed(eventId, success, failed) {
   })
 }
 
+function addZIP (zip, success, failed) {
+  Zip.create({zip: zip}).then( (zipObj) => {
+      success();
+  }, (error) => {
+      failed("Can't add zip to DB");
+  });
+}
+
 function saveToDB(object, success, failed) {
   object.save().then( success, (error) => {
     failed("Cannot save object")
@@ -195,3 +209,4 @@ module.exports.destroyWarrantyRecord = destroyWarrantyRecord
 module.exports.findWarrantyBySubscriptionId = findWarrantyBySubscriptionId
 module.exports.isStripeEventProcessed = isStripeEventProcessed
 module.exports.addStripeEventToProcessed = addStripeEventToProcessed
+module.exports.addZIP = addZIP
