@@ -3,7 +3,7 @@ var crypto = require('crypto');
 
 function sendError(res, error) {
   var errorResult = { result: "error",error: error};
-  res.json(errorResult)
+  res.jsonp(errorResult)
 }
 
 function inspectionId(inspection) {
