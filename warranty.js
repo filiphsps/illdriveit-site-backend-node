@@ -39,6 +39,7 @@ router.post("/verifyzip", (req, res) => {
 })
 
 function validateZIP(zip) {
+  if (zip==="000") return false
   return true
 }
 
