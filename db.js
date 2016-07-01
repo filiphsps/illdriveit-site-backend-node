@@ -1,5 +1,6 @@
 var crypto = require('crypto');
 var path = require('path');
+var utils = require('./utilities.js');
 var Sequelize = require('sequelize')
   , sequelize = new Sequelize('database_name', 'username', 'password', {
       dialect: "sqlite", // or 'sqlite', 'postgres', 'mariadb'
@@ -87,7 +88,9 @@ function saveWarranty(warrantyResponse, inspectionRequest,
     return;
   }
   let firstWarranty = warrantyResponse.GeneratedContracts[0]
-  let inspectionRequestId = utils.inspectionId(inspectionRequestId);
+  // console.log("before inspectionRequestId");
+  let inspectionRequestId = utils.inspectionId(inspectionRequest);
+  // console.log("after inspectionRequestId: ", inspectionRequestId);
   Warranties.findOne({where:{InspectionRequestId: inspectionRequestId}})
   .then( (warrantyObj) => {
     if (warrantyObj === null) {
