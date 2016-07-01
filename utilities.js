@@ -1,4 +1,5 @@
 var db = require('./db.js')
+var crypto = require('crypto');
 
 function sendError(res, error) {
   var errorResult = { result: "error",error: error};
@@ -6,11 +7,14 @@ function sendError(res, error) {
 }
 
 function inspectionId(inspection) {
+  console.log(inspection);
   let hash = crypto.createHash('sha256');
+  let date = new Date();
+  console.log("after Date");
   hash.update(inspection.vin)
     .update(inspection.first_name)
     .update(inspection.last_name);
-  hash.update(inspection.date.toString());
+  hash.update(date.toString());
   let id = hash.digest('hex');
   return id;
 }

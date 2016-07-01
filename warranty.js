@@ -11,7 +11,7 @@ var stripe = require('stripe')(stripeWarrantyApiKeyTesting);
 
 var MBPCredentials = {
   Server: "http://testdealerservices.mbpnetwork.com",
-  Dealercode:"001066",
+  Dealercode:"012065",
   Accountusername:"tirekickers",
   AccountPassword:"WERQ890XcvzYD!",
 }
@@ -22,108 +22,223 @@ router.get("/", (req, res) => {
 });
 
 function verifyVehiclePost(req, res, next) {
-   if ( (req.body.inspectionRequest === undefined) ||
-        (req.body.inspectionRequest === null)) {
-           utils.sendError(res, "inspectionRequest field not defined");
+   if ( (req.body.warrantyRequest === undefined) ||
+        (req.body.warrantyRequest === null)) {
+           utils.sendError(res, "warrantyRequest field not defined");
+   }
+   if (! Boolean(req.body.quoteResponseId)) {
+     utils.sendError(res, "No quoteResponseId"); return;
    }
    if ((req.body.planId === undefined) || (req.body.planId === null)) {
      utils.sendError(res, "No planId"); return;
    }
-   if ((req.body.customerPrice === undefined) || (customerPrice === null)) {
+   if (! Boolean(req.body.customerPrice)) {
      utils.sendError(res, "No customerPrice"); return;
    }
-   if (! Boolean(req.body.inspectionRequest.vin)) {
-     utils.sendError(res, "No inspectionRequest.vin"); return;
+   let warrantyRequest = req.body.warrantyRequest;
+   if (! Boolean(warrantyRequest.vin)) {
+     utils.sendError(res, "No warrantyRequest.vin"); return;
    }
-   if (! Boolean(inspectionRequest.first_name)) {
-     utils.sendError(res, "No inspectionRequest.first_name"); return;
+   if (! Boolean(warrantyRequest.mileage)) {
+     utils.sendError(res, "No warrantyRequest.mileage"); return;
    }
-   if (! Boolean(inspectionRequest.last_name)) {
-     utils.sendError(res, "No inspectionRequest.last_name"); return;
+   if (! Boolean(warrantyRequest.first_name)) {
+     utils.sendError(res, "No warrantyRequest.first_name"); return;
    }
-   if (! Boolean(inspectionRequest.address1)) {
-     utils.sendError(res, "No inspectionRequest.address1"); return;
+   if (! Boolean(warrantyRequest.last_name)) {
+     utils.sendError(res, "No warrantyRequest.last_name"); return;
    }
-   if (! Boolean(inspectionRequest.city)) {
-     utils.sendError(res, "No inspectionRequest.city"); return;
+   if (! Boolean(warrantyRequest.address1)) {
+     utils.sendError(res, "No warrantyRequest.address1"); return;
    }
-   if (! Boolean(inspectionRequest.state)) {
-     utils.sendError(res, "No inspectionRequest.state"); return;
+   if (! Boolean(warrantyRequest.city)) {
+     utils.sendError(res, "No warrantyRequest.city"); return;
    }
-   if (! Boolean(inspectionRequest.zip)) {
-     utils.sendError(res, "No inspectionRequest.zip"); return;
+   if (! Boolean(warrantyRequest.state)) {
+     utils.sendError(res, "No warrantyRequest.state"); return;
    }
-   if (! Boolean(inspectionRequest.phone)) {
-     utils.sendError(res, "No inspectionRequest.phone"); return;
+   if (! Boolean(warrantyRequest.zip)) {
+     utils.sendError(res, "No warrantyRequest.zip"); return;
    }
-   if (! Boolean(inspectionRequest.email)) {
-     utils.sendError(res, "No inspectionRequest.email"); return;
+   if (! Boolean(warrantyRequest.phone)) {
+     utils.sendError(res, "No warrantyRequest.phone"); return;
    }
-   if (! Boolean(req.body.payments.downpaymentStripeToken)) {
-     utils.sendError(res, "No payments.downpaymentStripeToken"); return;
+   if (! Boolean(warrantyRequest.email)) {
+     utils.sendError(res, "No warrantyRequest.email"); return;
    }
-   if (! Boolean(req.body.payments.installmentStripeToken)) {
-     utils.sendError(res, "No payments.installmentStripeToken"); return;
+   if (! Boolean(req.body.paymentOption)) {
+     utils.sendError(res, "No paymentOption"); return;
    }
-   if (! Boolean(req.body.payments.monthlyPayment)) {
-     utils.sendError(res, "No payments.monthlyPayment"); return;
+   if (! Boolean(req.body.paymentOption.downpayment)) {
+     utils.sendError(res, "No paymentOption.downpayment"); return;
    }
-   if (! Boolean(req.body.payments.numberOfMonths)) {
-     utils.sendError(res, "No payments.numberOfMonths"); return;
+   if (! Boolean(req.body.paymentOption.number_of_months)) {
+     utils.sendError(res, "No paymentOption.number_of_months"); return;
+   }
+   if (! Boolean(req.body.paymentOption.downpaymentCard)) {
+     utils.sendError(res, "No paymentOption.downpaymentCard"); return;
+   }
+   if (! Boolean(req.body.paymentOption.financeCard)) {
+     utils.sendError(res, "No paymentOption.financeCard"); return;
+   }
+   let downpaymentCardError = checkCardDataPresent(req.body.paymentOption.downpaymentCard, "downpaymentCard");
+   if ( Boolean(downpaymentCardError) ) {
+     utils.sendError(res, downpaymentCardError); return;
+   }
+   let financeCardError = checkCardDataPresent(req.body.paymentOption.financeCard, "financeCard");
+   if ( Boolean(financeCardError) ) {
+     utils.sendError(res, financeCardError); return;
    }
 
    next();
 }
 
+function checkCardDataPresent(card, type) {
+  if (! Boolean(card.account_number)) {
+    return "No "+type+".account_number";
+  }
+  if (! Boolean(card.cardholder_name)) {
+    return "No "+type+".cardholder_name";
+  }
+  if (! Boolean(card.expiration_month)) {
+    return "No "+type+".expiration_month";
+  }
+  if (! Boolean(card.expiration_year)) {
+    return "No "+type+".expiration_year";
+  }
+}
+
+Date.prototype.toMBPIString = function() {
+  let dateStr = (this.getMonth()+1).toString()+"-"+
+    this.getDate().toString()+"-"+
+    this.getFullYear().toString();
+    return dateStr;
+};
+
+function numberToStringTerm(numberTerm) {
+  let dict = {
+    6: "SixMonth",
+    12: "TwelveMonth",
+    15: "FifteenMonth",
+    18: "EighteenMonth",
+    24: "TwentyFourMonth"
+  }
+  if (numberTerm in dict) {
+      return dict[numberTerm];
+  } else {
+    return null;
+  }
+}
+
+function formMBPFinanceAccountPayments(internalPayment, isDownpayment) {
+  let res = {
+    AccountPaymentType: "CreditCard",
+    CreditCardType: cardType(internalPayment.account_number),
+    CardHolderName: internalPayment.cardholder_name,
+    AccountNumber: internalPayment.account_number, // Card number
+    ExpirationMonth: internalPayment.expiration_month,
+    ExpirationYear: internalPayment.expiration_year,
+    UseForDownPayment: isDownpayment,
+    UseForMonthlyPayment: !isDownpayment
+  }
+  return res
+}
+
+function cardType(accountNumber) {
+  function inRangeInclusive (value, start, end) {
+    return ((value >= start) && (value <= end))
+  }
+  //TODO: actual check
+  let visaLengths = new Set([13, 16, 19]);
+  // console.log("A/N:\"",accountNumber,"\" length ", accountNumber.length,
+ // "starts ", accountNumber.startsWith("4"), " in ", (accountNumber.length in [13, 16, 19]) );
+  if (accountNumber.startsWith("4") && (visaLengths.has(accountNumber.length))) {
+    return "Visa"
+  }
+  let first2Numbers =  parseInt(accountNumber.substr(0,2));
+  if (inRangeInclusive(first2Numbers,51,55) && (accountNumber.length === 16)) {
+    return "MasterCard"
+  }
+  if ((first2Numbers in [34,37]) && (accountNumber.length === 15)) {
+    return "AmericanExpress"
+  }
+  // Discover
+  let first3Numbers =  parseInt(accountNumber.substr(0,3));
+  let first4Numbers =  parseInt(accountNumber.substr(0,4));
+  let first6Numbers =  parseInt(accountNumber.substr(0,6));
+  if ((first2Numbers === 65) ||
+      (inRangeInclusive(first3Numbers, 644, 649)) ||
+      (inRangeInclusive(first3Numbers, 644, 649)) ||
+      ( first4Numbers === 6011) ||
+      (inRangeInclusive(first6Numbers, 622126,622925))) {
+      return  "Discover"
+    }
+  return "Unknown"
+}
+
 router.post("/purchase",
        verifyVehiclePost,
        (req, res) => {
-  let inspectionRequest = req.body.inspectionRequest
+  let warrantyRequest = req.body.warrantyRequest
   let dateObj = new Date();
-  inspectionRequest.date = dateObj
+  warrantyRequest.date = dateObj
   let date = (dateObj.getMonth()+1).toString()+"-"+
     dateObj.getDate().toString()+"-"+
     dateObj.getFullYear().toString();
-  console.log("Purchase date: ", date, "VIN ", inspectionRequest.vin);
-  let queryResponseId = req.body.queryResponseId;
-  if (queryResponseId === undefined) {
-    utils.sendError(res, "No QueryResponseId"); return;
-  }
+  console.log("Purchase date: ", date, "VIN ", warrantyRequest.vin);
+  let quoteResponseId = req.body.quoteResponseId;
   let planId = req.body.planId
   let customerPrice = req.body.customerPrice
   // Commented out for test purposes
-
-  requestify.post(MBPCredentials.Server + "/api/purchasecontract.json", {
+  let paymentOption = req.body.paymentOption;
+  let downpaymentCard = formMBPFinanceAccountPayments(paymentOption.downpaymentCard, true);
+  let financeCard = formMBPFinanceAccountPayments(paymentOption.financeCard, false);
+  let firstPaymentDate = new Date() ;
+  // firstPaymentDate.setMonth(firstPaymentDate.getMonth()+1);
+  let firstPaymentDateString = firstPaymentDate.toMBPIString()
+  console.log("First payment date: ", firstPaymentDateString);
+  let objectToRequest = {
     Dealercode: MBPCredentials.Dealercode,
-    Accountusername: MBPCredentials.Accountusername,
+    AccountUsername: MBPCredentials.Accountusername,
     AccountPassword: MBPCredentials.AccountPassword,
-    QuoteResponseID: queryResponseId,
-    VIN:inspectionRequest.vin, //"1FD7X2A66BEA98347",
-    Mileage:inspectionRequest.mileage, //10,
-    PurchasePrice:6000,
+    QuoteResponseID: quoteResponseId,
+    VIN:warrantyRequest.vin, //"1FD7X2A66BEA98347",
+    Mileage:warrantyRequest.mileage, //10,
+    PurchasePrice:10000,
     PurchaseDate:date, //"4-2-2016",
     Statustype:"used",
     IsFirstOwner: false,
     format:"json",
     Customer: {
-      FirstName: inspectionRequest.first_name,
-      LastName: inspectionRequest.last_name,
-      Address1: inspectionRequest.address1, //"NOT defined yet",
-      Address2: inspectionRequest.address2,
-      City: inspectionRequest.city, //"NOT defined yet",
-      StateAbbreviation: inspectionRequest.state, //"CA",
-      ZipCode: inspectionRequest.zip, //"90210",
-      HomePhoneNumber: inspectionRequest.phone,
-      EmailAddress: inspectionRequest.email,
+      FirstName: warrantyRequest.first_name,
+      LastName: warrantyRequest.last_name,
+      Address1: warrantyRequest.address1, //"NOT defined yet",
+      Address2: warrantyRequest.address2,
+      City: warrantyRequest.city, //"NOT defined yet",
+      StateAbbreviation: warrantyRequest.state, //"CA",
+      ZipCode: warrantyRequest.zip, //"90210",
+      HomePhoneNumber: warrantyRequest.phone,
+      EmailAddress: warrantyRequest.email
     },
     Plans: [{
       PlanIdentifier: planId,
-      CustomerPrice: customerPrice
+      CustomerPrice: customerPrice,
+      Lender: {
+        DealerPaysMBPFinanceServiceFee: false,
+        DownPaymentAmount: paymentOption.downpayment,
+        FirstPaymentDate: firstPaymentDateString,
+        MBPFinancePlanType: numberToStringTerm(paymentOption.number_of_months)
+      },
+      MBPFinanceAccountPayments: [downpaymentCard, financeCard]
     }]
-  }).then( (response) => {
+  };
+  console.log(JSON.stringify(objectToRequest));
+  requestify.post(MBPCredentials.Server + "/api/purchasecontract.json",
+   objectToRequest).then( (response) => {
     // Get the response body
     let jsonBody = response.getBody();
-    // console.log(jsonBody);
+    // console.log("Response:", jsonBody);
+    console.log("Response received");
     let errors = jsonBody.Errors;
     // console.log(errors);
     if (errors !== undefined) {
@@ -140,47 +255,13 @@ router.post("/purchase",
       ResponseID:"TestWarrantyResponseId"
     }*/
     let warrantyJsonBody = jsonBody;
-    db.saveWarranty(warrantyJsonBody, inspectionRequest, (warrantyDBObject) => {
-      createInstallmentPlanViaStripe(req, res, warrantyDBObject, (subscription) => {
-        if (subscription!== undefined ) {
-          req.body.subscriptionCustomer = subscription.customer
-        }
-        chargeDownpaymentViaStripe(req, res, () => {
+    db.saveWarranty(warrantyJsonBody, warrantyRequest, (warrantyDBObject) => {
           res.send(warrantyJsonBody);
-        }, (stripeDownpaymentError) => {
-          if (subscription) {
-          deleteSubscriptionRecursivelly(subscription.id, () => {
-            voidWarranty(warrantyDBObject.ResponseID,
-               warrantyDBObject.ContractNumber, () => {
-                 destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, stripeDownpaymentError)
-               }, (voidWarrantyError) => {
-                 destroyWarrantyDBReconrAndSendError(res, warrantyDBObject,
-                    stripeDownpaymentError+" "+voidWarrantyError)
-               })
-          })
-        }  else { // if no subscription
-          let contractNumber = warrantyDBObject.ContractNumber
-          voidWarranty(warrantyDBObject.ResponseID,
-             contractNumber, () => {
-               destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, stripeDownpaymentError)
-          }, (voidWarrantyError) => {
-            destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, stripeDownpaymentError)
-          })
-        }
-        })
-      }, (installmentPlanError) => {
-        // TODO: Void warranty here
-        voidWarranty(warrantyDBObject.ResponseID,
-           warrantyDBObject.ContractNumber, () => {
-             destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, installmentPlanError)
-        }, (voidWarrantyError) => {
-          destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, stripeDownpaymentError)
-        })
-      })
-      // Commented out for test purposes
     }, (error) => {
       utils.sendError(res, error);
     })
+  }, (error) => {
+    utils.sendError(res, error);
   });
 })
 
@@ -283,7 +364,7 @@ function createInstallmentPlanViaStripe(req, res, warrantyDBObject, success, fai
   let planId = uuid.v4();
   createSubscriptionPlan(monthlyPayment, planName, planId, (plan) => {
     createCustomer(stripeToken, paymentDescriptionVal,
-       req.body.inspectionRequest.email, (customer) => {
+       req.body.warrantyRequest.email, (customer) => {
          createSubscription(plan.id, customer.id, (subscription) => {
            warrantyDBObject.installmentPlanId = subscription.id;
            warrantyDBObject.periodsToCancel = numberOfMonths;
@@ -385,20 +466,20 @@ function deleteSubscriptionRecursivelly(subscriptionId, finished) {
 
 
 function paymentDescription(req) {
-  let inspectionRequest = req.body.inspectionRequest
+  let warrantyRequest = req.body.warrantyRequest
   var paymentDescription = "Downpayment on warranty of " +
-   inspectionRequest.make + " " + inspectionRequest.model + " for " +
-   inspectionRequest.first_name + " " + inspectionRequest.last_name + " (" +
-   inspectionRequest.email + ")";
+   warrantyRequest.make + " " + warrantyRequest.model + " for " +
+   warrantyRequest.first_name + " " + warrantyRequest.last_name + " (" +
+   warrantyRequest.email + ")";
    return paymentDescription;
 }
 
 function installmentPaymentDescription(req) {
-  let inspectionRequest = req.body.inspectionRequest
+  let warrantyRequest = req.body.warrantyRequest
   var paymentDescription = /*"Installment on warranty of " +
-   inspectionRequest.make + " " + inspectionRequest.model + " for " +*/
-   inspectionRequest.first_name + " " + inspectionRequest.last_name + " (" +
-   inspectionRequest.email + ") subscription";
+   warrantyRequest.make + " " + warrantyRequest.model + " for " +*/
+   warrantyRequest.first_name + " " + warrantyRequest.last_name + " (" +
+   warrantyRequest.email + ") subscription";
    return paymentDescription;
 }
 
@@ -446,7 +527,7 @@ router.get("/plans", (req, res) => {
         processMBPIErrors(errors, res);
         return;
       }
-      let queryResponseId = jsonBody.ResponseID
+      let quoteResponseId = jsonBody.ResponseID
       // console.log(errors);
       let programs = jsonBody.Programs
       // console.log(programs)
@@ -473,7 +554,7 @@ router.get("/plans", (req, res) => {
           }
         return sum;
       }, []);
-      res.json({plans: plans, planRequestId:queryResponseId});
+      res.json({plans: plans, planRequestId:quoteResponseId});
     });
 });
 
