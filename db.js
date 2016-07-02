@@ -39,7 +39,9 @@ var Warranties = sequelize.define('Warranties', {
 });
 
 var Zip = sequelize.define('Zip', {
+  vin: Sequelize.STRING,
   zip: Sequelize.STRING,
+  email: Sequelize.STRING
 }, {
   tableName: 'site_zip', // this will define the table's name
 });
@@ -200,13 +202,33 @@ function addStripeEventToProcessed(eventId, success, failed) {
   })
 }
 
-function addZIP (zip, success, failed) {
-  Zip.create({zip: zip}).then( (zipObj) => {
-      success();
+function addZIP (zip, vin, success, failed) {
+  Zip.findOrInitialize({where:{vin: vin}})
+  .spread( (zipObj) => {
+      zipObj.zip = zip;
+      zipObj.save().then( (obj) => {
+          success();
+      }, (error) => {
+          failed("Can't add zip to DB");
+      });
   }, (error) => {
       failed("Can't add zip to DB");
   });
 }
+
+function addEmailForNotification (email, vin, success, failed) {
+  Zip.findOrInitialize({where:{vin: vin}}).spread( (zipObj) => {
+      zipObj.email = email;
+      zipObj.save().then( (obj) => {
+          success();
+      }, (error) => {
+          failed("Can't add zip to DB");
+      });
+  }, (error) => {
+      failed("Can't add zip to DB");
+  });
+}
+
 
 function saveToDB(object, success, failed) {
   object.save().then( success, (error) => {
@@ -234,4 +256,5 @@ module.exports.findWarrantyBySubscriptionId = findWarrantyBySubscriptionId
 module.exports.isStripeEventProcessed = isStripeEventProcessed
 module.exports.addStripeEventToProcessed = addStripeEventToProcessed
 module.exports.addZIP = addZIP
+module.exports.addEmailForNotification = addEmailForNotification
 module.exports.getStateFromZIP = getStateFromZIP

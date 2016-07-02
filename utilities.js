@@ -1,5 +1,7 @@
 var db = require('./db.js')
 var crypto = require('crypto');
+var express = require('express');
+
 
 function sendError(res, error) {
   var errorResult = { result: "error",error: error};

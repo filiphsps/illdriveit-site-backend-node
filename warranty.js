@@ -23,22 +23,45 @@ router.get("/", (req, res) => {
 });
 
 router.post("/verifyzip", (req, res) => {
+  let vin = req.body.vin;
   let zip = req.body.zip;
   let mileage = req.body.mileage;
   if (typeof mileage !== 'number') {
-    utils.sendError("wrong mileage")
+    utils.sendError(res, "wrong mileage"); return;
   }
   if (typeof zip !== 'string') {
-    utils.sendError("wrong zip")
+    utils.sendError(res, "wrong zip"); return;
   }
-  db.addZIP(zip, ()=> {
+  if (typeof vin !== 'string') {
+    utils.sendError(res, "wrong vin"); return;
+  }
+
+  db.addZIP(zip, vin, ()=> {
     zipValidator.validateZIP(zip, (isZipValid)=> {
-        res.jsonp({valid: isZipValid})
+        res.jsonp({valid: isZipValid}); return;
     })
   }, (error) => {
-    res.jsonp({valid: false, error: error });
+    res.jsonp({valid: false, error: error }); return;
   });
 })
+
+router.post("/emailtonotify", (req, res) => {
+  let vin = req.body.vin;
+  let email = req.body.email;
+  if (typeof email !== 'string') {
+    utils.sendError(res, "wrong email"); return;
+  }
+  if (typeof vin !== 'string') {
+    utils.sendError(res, "wrong vin"); return;
+  }
+  db.addEmailForNotification(email, vin, ()=> {
+    res.jsonp({result: "success"}); return;
+  }, (error) => {
+    utils.sendError(res, error); return;
+  });
+
+})
+
 
 function verifyVehiclePost(req, res, next) {
    if ( (req.body.warrantyRequest === undefined) ||
