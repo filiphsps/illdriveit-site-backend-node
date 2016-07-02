@@ -44,6 +44,18 @@ var Zip = sequelize.define('Zip', {
   tableName: 'site_zip', // this will define the table's name
 });
 
+var Zips = sequelize.define('zips', {
+  zip: {
+        type: Sequelize.INTEGER,
+        primaryKey: true
+    },
+  state: Sequelize.STRING
+}, {
+  timestamps: false,
+  tableName: 'zips' // this will define the table's name
+});
+
+
 var ProcessedStripeEvents = sequelize.define('ProcessedStripeEvents', {
   eventId: {
     type:Sequelize.STRING,
@@ -202,6 +214,18 @@ function saveToDB(object, success, failed) {
   })
 }
 
+function getStateFromZIP (zip, success, failed) {
+  Zips.findOne({where: {zip:parseInt(zip)}})
+  .then((zipObj) => {
+    if (!zipObj) {
+        failed("ZIP Not Found"); return;
+    }
+    success(zipObj.state);
+  }, (error) => {
+    failed(error.toString())
+  });
+}
+
 module.exports.initDB = initDB;
 module.exports.saveToDB = saveToDB;
 module.exports.saveWarranty = saveWarranty
@@ -210,3 +234,4 @@ module.exports.findWarrantyBySubscriptionId = findWarrantyBySubscriptionId
 module.exports.isStripeEventProcessed = isStripeEventProcessed
 module.exports.addStripeEventToProcessed = addStripeEventToProcessed
 module.exports.addZIP = addZIP
+module.exports.getStateFromZIP = getStateFromZIP

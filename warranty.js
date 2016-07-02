@@ -4,6 +4,7 @@ var utils = require('./utilities.js');
 var path = require('path');
 var requestify = require('requestify');
 var uuid = require('node-uuid');
+var zipValidator = require('./zip_validation.js')
 
 var stripeWarrantyApiKeyProduction = "ENTER_HERE_YOUR_PRODUCTION_KEY"
 var stripeWarrantyApiKeyTesting = "sk_test_nPr0hqYbXY4wc1STkZvKukWX"
@@ -31,17 +32,13 @@ router.post("/verifyzip", (req, res) => {
     utils.sendError("wrong zip")
   }
   db.addZIP(zip, ()=> {
-    let isZipValid = validateZIP(zip)
-    res.jsonp({valid: isZipValid})
+    zipValidator.validateZIP(zip, (isZipValid)=> {
+        res.jsonp({valid: isZipValid})
+    })
   }, (error) => {
     res.jsonp({valid: false, error: error });
   });
 })
-
-function validateZIP(zip) {
-  if (zip==="000") return false
-  return true
-}
 
 function verifyVehiclePost(req, res, next) {
    if ( (req.body.warrantyRequest === undefined) ||
