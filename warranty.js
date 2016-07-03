@@ -36,13 +36,48 @@ router.post("/verifyzip", (req, res) => {
     utils.sendError(res, "wrong vin"); return;
   }
   db.addZIP(zip, vin, ()=> {
-    zipValidator.validateZIP(zip, (isZipValid)=> {
-        res.jsonp({zipValid: isZipValid, mileageValid:(mileage<=36000)}); return;
-    })
+    validateYear(vin, (yearIsValid) => {
+      console.log("Year valid ", yearIsValid);
+      zipValidator.validateZIP(zip, (isZipValid)=> {
+          res.jsonp({ zipValid: isZipValid,
+             mileageValid:(mileage<=36000),
+             yearValid:yearIsValid
+           }); return;
+      })
+    });
   }, (error) => {
-    res.jsonp({valid: false, error: error }); return;
+    res.jsonp({valid: false,
+      error: error,
+      mileageValid:false,
+      yearValid:false }); return;
   });
 })
+
+function validateYear(vin, result) {
+  getYear(vin, (yearResult) => {
+    let now = new Date();
+    let diff = now.getFullYear() - yearResult;
+    result( (diff <= 3));
+  })
+}
+
+function getYear(vin, result) {
+  requestify.get("https://api.edmunds.com/api/vehicle/v2/vins/" +
+    vin+"?fmt=json&api_key=y2wzse9sxruvn2nfgw9fn9ar"). then((response) => {
+      if (! response) {
+        result(0);
+        return;
+      }
+      let jsonBody = response.getBody();
+      console.log("Response:", jsonBody);
+      let year = jsonBody.years.reduce((previous, elem) => {
+        // body...
+        return Math.max(elem.year, previous);
+      },0);
+      console.log("Response year: ", year);
+      result(year);
+    })
+}
 
 router.post("/emailtonotify", (req, res) => {
   let vin = req.body.vin;
