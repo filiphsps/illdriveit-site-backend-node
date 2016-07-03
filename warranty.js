@@ -35,10 +35,9 @@ router.post("/verifyzip", (req, res) => {
   if (typeof vin !== 'string') {
     utils.sendError(res, "wrong vin"); return;
   }
-
   db.addZIP(zip, vin, ()=> {
     zipValidator.validateZIP(zip, (isZipValid)=> {
-        res.jsonp({valid: isZipValid}); return;
+        res.jsonp({zipValid: isZipValid, mileageValid:(mileage<=36000)}); return;
     })
   }, (error) => {
     res.jsonp({valid: false, error: error }); return;
