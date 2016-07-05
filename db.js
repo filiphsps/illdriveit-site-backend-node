@@ -118,7 +118,7 @@ function saveWarranty(warrantyResponse, inspectionRequest,
         PlanIdentifier: firstWarranty.PlanIdentifier,
         ContractNumber: firstWarranty.ContractNumber,
         // TODO: turn it on in production
-        // ContractDocument: firstWarranty.ContractDocument,
+        ContractDocument: firstWarranty.ContractDocument,
         ResponseID: warrantyResponse.ResponseID,
         InspectionReportId: inspectionRequestId
       }).then( (warranty) => {
@@ -129,7 +129,7 @@ function saveWarranty(warrantyResponse, inspectionRequest,
     } else {
       warrantyObj.PlanIdentifier = firstWarranty.PlanIdentifier;
       warrantyObj.ContractNumber = firstWarranty.ContractNumber;
-      // warrantyObj.ContractDocument = firstWarranty.ContractDocument;
+      warrantyObj.ContractDocument = new Buffer(firstWarranty.ContractDocument);
       warrantyObj.ResponseID = warrantyResponse.ResponseID;
       warrantyObj.save().then( (warrantySuccessObj) => {
         succes(warrantySuccessObj); return;
@@ -157,7 +157,7 @@ function saveWarranty(warrantyResponse, inspectionRequest,
       PlanIdentifier: firstWarranty.PlanIdentifier,
       ContractNumber: firstWarranty.ContractNumber,
       // TODO: turn it on in production
-      // ContractDocument: firstWarranty.ContractDocument,
+      ContractDocument: firstWarranty.ContractDocument,
       ResponseID: warrantyResponse.ResponseID,
     }).then( (warranty) => {
       success(warranty); return;
@@ -248,6 +248,16 @@ function getStateFromZIP (zip, success, failed) {
   });
 }
 
+function contractByNumber(contractNumber, contract) {
+  Warranties.findOne({where: {ContractNumber:contractNumber}})
+  .then( (warranty) => {
+    if (! warranty) {
+      contract(null); return;
+    }
+    contract(warranty.ContractDocument);
+  })
+}
+
 module.exports.initDB = initDB;
 module.exports.saveToDB = saveToDB;
 module.exports.saveWarranty = saveWarranty
@@ -258,3 +268,4 @@ module.exports.addStripeEventToProcessed = addStripeEventToProcessed
 module.exports.addZIP = addZIP
 module.exports.addEmailForNotification = addEmailForNotification
 module.exports.getStateFromZIP = getStateFromZIP
+module.exports.contractByNumber = contractByNumber

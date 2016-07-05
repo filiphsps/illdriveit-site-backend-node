@@ -1,5 +1,6 @@
 var express = require('express');
-var db = require('./db.js')
+var db = require('./db.js');
+var fs = require('fs-extra')
 var utils = require('./utilities.js');
 var path = require('path');
 var requestify = require('requestify');
@@ -587,5 +588,99 @@ function processMBPIErrors (errors, res) {
   console.log("Result error Desc: " + errorDescription);
   utils.sendError(res, errorDescription);
 }
+
+var hummus = require('hummus')
+var BlockReader = function(buffer) {
+  this.m_buffer = buffer;
+  this.m_pos = 0;
+}
+
+BlockReader.prototype.read = function(inAmount) {
+  const left = m_buffer.length - m_pos
+  const availiable = Math.min(inAmount, left)
+  const sb = this.m_buffer.slice(this.m_pos, this.m_pos + availiable)
+  // this.m_pos = this.m_pos + availiable
+  let res = []
+  for (var value of sb.values()) {
+    res.push(value);
+  }
+  return value;
+};
+
+BlockReader.prototype.notEnded = function() {
+  return this.m_pos < this.m_buffer.length
+}
+
+BlockReader.prototype.setPosition =  function (inPosition) {
+  this.m_pos = inPosition
+}
+
+BlockReader.prototype.setPositionFromEnd = function(inPosition) {
+  this.m_pos = this.m_buffer.length - inPosition
+}
+
+BlockReader.prototype.skip = function (inAmount) {
+  this.m_pos = this.m_pos + inAmount;
+}
+
+BlockReader.prototype.getCurrentPosition = function() {
+  return this.m_pos;
+};
+
+router.get("/contract/:number", (req, res) => {
+  db.contractByNumber(req.params.number, (contractBLOB) => {
+    if (!contractBLOB) {
+      res.status(404).send('Sorry, we cannot find that!'); return;
+    }
+    let origDoc = new Buffer(contractBLOB.toString('ascii'), 'base64');
+    // let br = new BlockReader(origDoc);
+    // console.log("BlockReader:", br);
+    fs.writeFileSync('./test.pdf', origDoc);
+    // let fr = hummus.PDFRStreamForFile('./test.pdf');
+    var writer = hummus.createWriterToModify('./test.pdf')
+    var pageModifier = new hummus.PDFPageModifier(writer, 0);
+    pageModifier.startContext().getContext().writeText(
+      'Hello ', 100,400, {
+       font: writer.getFontForFile('./century-gothic.ttf'),
+       size:60,
+       colorspace:'gray',
+       color:0x00
+    }).drawImage(10,10,'./sign.tiff',
+      {transformation:{width:100,height:100, proportional:true}});
+    pageModifier.endContext().writePage();
+    writer.end();
+
+    var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(res), {log:'./MY_LOG_FILE'});
+  /*  let cpCtx = pdfWriter.createPDFCopyingContext('./test.pdf')
+    let parser = cpCtx.getSourceDocumentParser()
+    let pagesCount = parser.getPagesCount()
+    let pageInfo = parser.parsePage(0);
+    console.log("Pages count ", pagesCount);
+    var mediabox = pageInfo.getMediaBox()
+    console.log("Pages[0] ", mediabox);
+    // var page = pdfWriter.createPage(0,0,595,842);
+    var page = pdfWriter.createPage(mediabox[0],mediabox[1],mediabox[2],mediabox[3]);
+    var pageCtx = pdfWriter.startPageContentContext(page)
+
+    pdfWriter.startPageContentContext(page).writeText(
+   'Hello ',
+    100,400,
+    {
+       font:pdfWriter.getFontForFile('./century-gothic.ttf'),
+       size:50,
+       colorspace:'gray',
+       color:0x00
+    }).drawImage(10,10,'./sign.jpg',
+      {transformation:{width:100,height:100, proportional:true}});;
+    pdfWriter.writePage(page);
+*/
+    pdfWriter.appendPDFPagesFromPDF('./test.pdf');
+    // cpCtx.mergePDFPageToPage(0,0)
+    pdfWriter.end();
+    // res.set('Content-Type', 'application/pdf');
+    res.end();
+// res.send(origDoc);
+  })
+})
 
 module.exports.router = router;
