@@ -76,6 +76,8 @@ function getYear(vin, result) {
       },0);
       console.log("Response year: ", year);
       result(year);
+    }, (error) => {
+      result(0)
     })
 }
 
