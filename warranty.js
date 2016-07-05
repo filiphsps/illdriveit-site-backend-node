@@ -174,6 +174,7 @@ function verifyVehiclePost(req, res, next) {
 
 function checkCardDataPresent(card, type) {
   if (! Boolean(card.account_number)) {
+    card.account_number = card.account_number.replace(/\D/g, "")
     return "No "+type+".account_number";
   }
   if (! Boolean(card.cardholder_name)) {
