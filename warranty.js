@@ -213,7 +213,7 @@ function numberToStringTerm(numberTerm) {
 function formMBPFinanceAccountPayments(internalPayment, isDownpayment) {
   let res = {
     AccountPaymentType: "CreditCard",
-    CreditCardType: cardType(internalPayment.account_number),
+    CreditCardType: cardType(internalPayment.account_number.replace(/\D/g, "")),
     CardHolderName: internalPayment.cardholder_name,
     AccountNumber: internalPayment.account_number, // Card number
     ExpirationMonth: internalPayment.expiration_month,
