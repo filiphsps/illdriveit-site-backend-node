@@ -55,7 +55,7 @@ router.post("/verifyzip", (req, res) => {
 
 router.get("/vehiclename", (req, res) => {
     const vin = req.query.vin;
-    if (!vin) { res.jsonp({name:"VEHICLE"}); return;}
+    if (!vin) { res.jsonp({name:"VEHICLE", model:"VEHICLE"}); return;}
     decodeVin(vin, (result) => {
       let year = result.years.reduce((previous, elem) => {
         // body...
@@ -63,9 +63,12 @@ router.get("/vehiclename", (req, res) => {
       },0);
       let model = result.model.name
       let make = result.make.name
-      res.jsonp({name:(""+year+ " "+make+" "+model).toUpperCase()});
+      res.jsonp({
+        name:(""+year+ " "+make+" "+model).toUpperCase(),
+        model: model.toUpperCase()
+      });
     }, (error) => {
-      res.jsonp({name:"VEHICLE"})
+      res.jsonp({name:"VEHICLE", model: "VEHICLE"})
     })
 })
 
