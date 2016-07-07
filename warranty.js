@@ -102,7 +102,7 @@ router.post("/emailtonotify", (req, res) => {
 function verifyVehiclePost(req, res, next) {
    if ( (req.body.warrantyRequest === undefined) ||
         (req.body.warrantyRequest === null)) {
-           utils.sendError(res, "warrantyRequest field not defined");
+           utils.sendError(res, "warrantyRequest field not defined"); return
    }
    if (! Boolean(req.body.quoteResponseId)) {
      utils.sendError(res, "No quoteResponseId"); return;
@@ -425,9 +425,11 @@ function chargeDownpaymentViaStripe(req, res, success, failed) {
   let downpayment = req.body.paymentOption.downpayment*100;
   let paymentDescriptionVal = paymentDescription(req);
   let card = req.body.paymentOption.downpaymentCard;
+  let warrantyRequest = req.body.warrantyRequest
   chargeObj = {
     amount: downpayment, // amount in cents, again
     currency: "usd",
+    receipt_email: warrantyRequest.email,
     source: {
        exp_month:card.expiration_month,
        exp_year:card.expiration_year,
