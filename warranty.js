@@ -53,6 +53,22 @@ router.post("/verifyzip", (req, res) => {
   });
 })
 
+router.get("/vehiclename", (req, res) => {
+    const vin = req.query.vin;
+    if (!vin) { res.jsonp({name:"VEHICLE"}); return;}
+    decodeVin(vin, (result) => {
+      let year = result.years.reduce((previous, elem) => {
+        // body...
+        return Math.max(elem.year, previous);
+      },0);
+      let model = result.model.name
+      let make = result.make.name
+      res.jsonp({name:(""+year+ " "+make+" "+model).toUpperCase()});
+    }, (error) => {
+      res.jsonp({name:"VEHICLE"})
+    })
+})
+
 function validateYear(vin, result) {
   getYear(vin, (yearResult) => {
     let now = new Date();
@@ -62,22 +78,30 @@ function validateYear(vin, result) {
 }
 
 function getYear(vin, result) {
+  decodeVin(vin, (jsonBody) => {
+    let year = jsonBody.years.reduce((previous, elem) => {
+      // body...
+      return Math.max(elem.year, previous);
+    },0);
+    console.log("Response year: ", year);
+    result(year);
+  }, (error) => {
+    result(0);
+  })
+}
+
+function decodeVin(vin, success, failed) {
   requestify.get("https://api.edmunds.com/api/vehicle/v2/vins/" +
     vin+"?fmt=json&api_key=y2wzse9sxruvn2nfgw9fn9ar"). then((response) => {
       if (! response) {
-        result(0);
+        failed("No response");
         return;
       }
       let jsonBody = response.getBody();
       console.log("Response:", jsonBody);
-      let year = jsonBody.years.reduce((previous, elem) => {
-        // body...
-        return Math.max(elem.year, previous);
-      },0);
-      console.log("Response year: ", year);
-      result(year);
+      success(jsonBody);
     }, (error) => {
-      result(0)
+      failed(error)
     })
 }
 
