@@ -242,7 +242,7 @@ function formMBPFinanceAccountPayments(internalPayment, isDownpayment) {
     AccountPaymentType: "CreditCard",
     CreditCardType: cardType(internalPayment.account_number.replace(/\D/g, "")),
     CardHolderName: internalPayment.cardholder_name,
-    AccountNumber: internalPayment.account_number, // Card number
+    AccountNumber: internalPayment.account_number.replace(/\D/g, ""), // Card number
     ExpirationMonth: internalPayment.expiration_month,
     ExpirationYear: internalPayment.expiration_year,
     UseForDownPayment: isDownpayment,
@@ -460,7 +460,7 @@ function chargeDownpaymentViaStripe(req, res, success, failed) {
     source: {
        exp_month:card.expiration_month,
        exp_year:card.expiration_year,
-        number:card.account_number,
+        number:card.account_number.replace(/\D/g, ""),
          object: "card",
           cvc: card.cvv
     },
