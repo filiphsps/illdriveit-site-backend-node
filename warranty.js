@@ -660,17 +660,15 @@ BlockReader.prototype.getCurrentPosition = function() {
 };
 
 router.get("/contract/:number", (req, res) => {
-  db.contractByNumber(req.params.number, (contractBLOB) => {
+  db.contractByNumber(req.params.number, (contractBLOB, signaturePlacesBLOB) => {
     if (!contractBLOB) {
       res.status(404).send('Sorry, we cannot find that!'); return;
     }
     let origDoc = new Buffer(contractBLOB.toString('ascii'), 'base64');
-    // let br = new BlockReader(origDoc);
-    // console.log("BlockReader:", br);
+    let signaturePlaces = JSON.parse(signaturePlacesBLOB.toString('ascii'))
     fs.writeFileSync('./test.pdf', origDoc);
-    // let fr = hummus.PDFRStreamForFile('./test.pdf');
     var writer = hummus.createWriterToModify('./test.pdf')
-    var pageModifier = new hummus.PDFPageModifier(writer, 0);
+/*    var pageModifier = new hummus.PDFPageModifier(writer, 0);
     pageModifier.startContext().getContext().writeText(
       'Hello ', 100,400, {
        font: writer.getFontForFile('./century-gothic.ttf'),
@@ -680,6 +678,30 @@ router.get("/contract/:number", (req, res) => {
     }).drawImage(10,10,'./sign.jpg',
       {transformation:{width:100,height:100, proportional:true}});
     pageModifier.endContext().writePage();
+
+    pageModifier = new hummus.PDFPageModifier(writer, firstSignature.PageNumber-1);
+    pageModifier.startContext().getContext().drawImage(
+      firstSignature.XCoordinate,firstSignature.YCoordinate,'./sign.jpg', {
+        transformation:{
+        width:firstSignature.Width,
+        height:firstSignature.Height,
+        proportional:true}
+      });
+      pageModifier.endContext().writePage();
+*/
+    signaturePlaces.SignatureFields.forEach(elem => {
+      if (elem.Name !== 'BuyerSignature') return;
+          console.log("Signature Place: ", elem);
+      pageModifier = new hummus.PDFPageModifier(writer, elem.PageNumber-1);
+      pageModifier.startContext().getContext().drawImage(
+        elem.XCoordinate,elem.YCoordinate,'./sign.jpg', {
+          transformation:{
+          width:elem.Width,
+          height:elem.Height,
+          proportional:true}
+        });
+        pageModifier.endContext().writePage();
+    });
     writer.end();
 
     var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(res), {log:'./MY_LOG_FILE'});

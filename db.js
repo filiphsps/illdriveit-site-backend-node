@@ -265,7 +265,7 @@ function contractByNumber(contractNumber, contract) {
     if (! warranty) {
       contract(null); return;
     }
-    contract(warranty.ContractDocument);
+    contract(warranty.ContractDocument, warranty.signaturePlacesJSON);
   })
 }
 
