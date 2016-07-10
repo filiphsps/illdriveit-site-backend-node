@@ -54,6 +54,25 @@ router.post("/verifyzip", (req, res) => {
   });
 })
 
+router.get("/vehiclename", (req, res) => {
+    const vin = req.query.vin;
+    if (!vin) { res.jsonp({name:"VEHICLE", model:"VEHICLE"}); return;}
+    decodeVin(vin, (result) => {
+      let year = result.years.reduce((previous, elem) => {
+        // body...
+        return Math.max(elem.year, previous);
+      },0);
+      let model = result.model.name
+      let make = result.make.name
+      res.jsonp({
+        name:(""+year+ " "+make+" "+model).toUpperCase(),
+        model: model.toUpperCase()
+      });
+    }, (error) => {
+      res.jsonp({name:"VEHICLE", model: "VEHICLE"})
+    })
+})
+
 function validateYear(vin, result) {
   getYear(vin, (yearResult) => {
     let now = new Date();
@@ -63,20 +82,30 @@ function validateYear(vin, result) {
 }
 
 function getYear(vin, result) {
+  decodeVin(vin, (jsonBody) => {
+    let year = jsonBody.years.reduce((previous, elem) => {
+      // body...
+      return Math.max(elem.year, previous);
+    },0);
+    console.log("Response year: ", year);
+    result(year);
+  }, (error) => {
+    result(0);
+  })
+}
+
+function decodeVin(vin, success, failed) {
   requestify.get("https://api.edmunds.com/api/vehicle/v2/vins/" +
     vin+"?fmt=json&api_key=y2wzse9sxruvn2nfgw9fn9ar"). then((response) => {
       if (! response) {
-        result(0);
+        failed("No response");
         return;
       }
       let jsonBody = response.getBody();
       console.log("Response:", jsonBody);
-      let year = jsonBody.years.reduce((previous, elem) => {
-        // body...
-        return Math.max(elem.year, previous);
-      },0);
-      console.log("Response year: ", year);
-      result(year);
+      success(jsonBody);
+    }, (error) => {
+      failed(error)
     })
 }
 
@@ -101,7 +130,7 @@ router.post("/emailtonotify", (req, res) => {
 function verifyVehiclePost(req, res, next) {
    if ( (req.body.warrantyRequest === undefined) ||
         (req.body.warrantyRequest === null)) {
-           utils.sendError(res, "warrantyRequest field not defined");
+           utils.sendError(res, "warrantyRequest field not defined"); return
    }
    if (! Boolean(req.body.quoteResponseId)) {
      utils.sendError(res, "No quoteResponseId"); return;
@@ -173,6 +202,7 @@ function verifyVehiclePost(req, res, next) {
 
 function checkCardDataPresent(card, type) {
   if (! Boolean(card.account_number)) {
+    card.account_number = card.account_number.replace(/\D/g, "")
     return "No "+type+".account_number";
   }
   if (! Boolean(card.cardholder_name)) {
@@ -211,9 +241,9 @@ function numberToStringTerm(numberTerm) {
 function formMBPFinanceAccountPayments(internalPayment, isDownpayment) {
   let res = {
     AccountPaymentType: "CreditCard",
-    CreditCardType: cardType(internalPayment.account_number),
+    CreditCardType: cardType(internalPayment.account_number.replace(/\D/g, "")),
     CardHolderName: internalPayment.cardholder_name,
-    AccountNumber: internalPayment.account_number, // Card number
+    AccountNumber: internalPayment.account_number.replace(/\D/g, ""), // Card number
     ExpirationMonth: internalPayment.expiration_month,
     ExpirationYear: internalPayment.expiration_year,
     UseForDownPayment: isDownpayment,
@@ -423,13 +453,15 @@ function chargeDownpaymentViaStripe(req, res, success, failed) {
   let downpayment = req.body.paymentOption.downpayment*100;
   let paymentDescriptionVal = paymentDescription(req);
   let card = req.body.paymentOption.downpaymentCard;
+  let warrantyRequest = req.body.warrantyRequest
   chargeObj = {
     amount: downpayment, // amount in cents, again
     currency: "usd",
+    receipt_email: warrantyRequest.email,
     source: {
        exp_month:card.expiration_month,
        exp_year:card.expiration_year,
-        number:card.account_number,
+        number:card.account_number.replace(/\D/g, ""),
          object: "card",
           cvc: card.cvv
     },
