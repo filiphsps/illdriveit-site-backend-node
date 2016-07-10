@@ -265,7 +265,10 @@ function contractByNumber(contractNumber, contract) {
     if (! warranty) {
       contract(null); return;
     }
-    contract(warranty.ContractDocument, warranty.signaturePlacesJSON);
+    contract(warranty);
+  }, (error) => {
+    console.log("DB Error: ", error);
+    contract(null); return;
   })
 }
 

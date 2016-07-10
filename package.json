@@ -22,6 +22,7 @@
     "express": "^4.13.4",
     "fs-extra": "^0.30.0",
     "hummus": "^1.0.54",
+    "imagemagick-native": "^1.9.2",
     "mysql": "^2.10.2",
     "node-uuid": "^1.4.7",
     "requestify": "^0.1.17",
