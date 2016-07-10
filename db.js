@@ -25,6 +25,8 @@ var Warranties = sequelize.define('Warranties', {
   PlanIdentifier: Sequelize.STRING,
   ContractNumber: Sequelize.STRING,
   ContractDocument: Sequelize.BLOB,
+  customerSignature: Sequelize.BLOB,
+  signaturePlacesJSON: Sequelize.BLOB,
   ResponseID: Sequelize.STRING,
   installmentSubscriptionId: Sequelize.STRING,
   periodsToCancel: Sequelize.INTEGER.UNSIGNED
@@ -108,6 +110,9 @@ function saveWarranty(warrantyResponse, inspectionRequest,
     return;
   }
   let firstWarranty = warrantyResponse.GeneratedContracts[0]
+  let signaturePlacesJSON = JSON.stringify({
+    SignatureFields:firstWarranty.SignatureFields
+  });
   // console.log("before inspectionRequestId");
   let inspectionRequestId = utils.inspectionId(inspectionRequest);
   // console.log("after inspectionRequestId: ", inspectionRequestId);
@@ -119,6 +124,8 @@ function saveWarranty(warrantyResponse, inspectionRequest,
         ContractNumber: firstWarranty.ContractNumber,
         // TODO: turn it on in production
         ContractDocument: firstWarranty.ContractDocument,
+        customerSignature:  inspectionRequest.signature,
+        signaturePlacesJSON: signaturePlacesJSON,
         ResponseID: warrantyResponse.ResponseID,
         InspectionReportId: inspectionRequestId
       }).then( (warranty) => {
@@ -131,6 +138,8 @@ function saveWarranty(warrantyResponse, inspectionRequest,
       warrantyObj.ContractNumber = firstWarranty.ContractNumber;
       warrantyObj.ContractDocument = new Buffer(firstWarranty.ContractDocument);
       warrantyObj.ResponseID = warrantyResponse.ResponseID;
+      customerSignature =  inspectionRequest.signature,
+      signaturePlacesJSON = new Buffer(signaturePlacesJSON),
       warrantyObj.save().then( (warrantySuccessObj) => {
         succes(warrantySuccessObj); return;
       }, (error) => {
@@ -158,6 +167,8 @@ function saveWarranty(warrantyResponse, inspectionRequest,
       ContractNumber: firstWarranty.ContractNumber,
       // TODO: turn it on in production
       ContractDocument: firstWarranty.ContractDocument,
+      customerSignature:  inspectionRequest.signature,
+      signaturePlacesJSON: signaturePlacesJSON,
       ResponseID: warrantyResponse.ResponseID,
     }).then( (warranty) => {
       success(warranty); return;

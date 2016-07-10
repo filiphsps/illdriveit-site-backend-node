@@ -677,7 +677,7 @@ router.get("/contract/:number", (req, res) => {
        size:60,
        colorspace:'gray',
        color:0x00
-    }).drawImage(10,10,'./sign.tiff',
+    }).drawImage(10,10,'./sign.jpg',
       {transformation:{width:100,height:100, proportional:true}});
     pageModifier.endContext().writePage();
     writer.end();
