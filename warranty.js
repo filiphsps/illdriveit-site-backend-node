@@ -382,7 +382,8 @@ router.post("/purchase",
         (paymentOption.number_of_months === 0)) {
         console.log("Charging downpayment via Stripe");
         chargeDownpaymentViaStripe(req, res, () => {
-          res.send(warrantyJsonBody);
+          let resultToSave = preparePurchaseResult(warrantyJsonBody);
+          res.json(resultToSave);
         }, (stripeDownpaymentError) => {
           voidWarranty(warrantyDBObject.ResponseID,
              warrantyDBObject.ContractNumber, () => {
@@ -395,13 +396,21 @@ router.post("/purchase",
         utils.sendError(res, error);
       })
       } else {
-        res.send(warrantyJsonBody);
+        let resultToSave = preparePurchaseResult(warrantyJsonBody);
+        res.json(resultToSave);
       }
     }, (error) => {
       utils.sendError(res, error);
     });
   });
 })
+
+function preparePurchaseResult(json) {
+  return {
+    Success: true,
+    ContractNumber: json.GeneratedContracts[0].ContractNumber
+  }
+}
 
 function destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, error) {
   let contractNumber = warrantyDBObject.ContractNumber
