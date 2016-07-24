@@ -9,9 +9,12 @@ var warranty = require('./warranty.js')
 var urlencodedParser = bodyParser.urlencoded({ extended: false })
 app.use(bodyParser.json({limit: '50mb'}));
 //Fix iframe issues
-app.setHeader('Access-Control-Allow-Origin', '*');
-app.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-app.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+app.use(function (req, res, next) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+    next();
+});
   // Put payments router in place
 app.use("/warranty", warranty.router);
 
