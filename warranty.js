@@ -381,9 +381,11 @@ router.post("/purchase",
       if ((paymentOption.downpayment === req.body.customerPrice) &&
         (paymentOption.number_of_months === 0)) {
         console.log("Charging downpayment via Stripe");
+
         chargeDownpaymentViaStripe(req, res, () => {
-          let resultToSave = preparePurchaseResult(warrantyJsonBody);
-          res.json(resultToSave);
+          preparePurchaseResult(warrantyJsonBody.GeneratedContracts[0].ContractNumber, (json) => {
+            res.json(json);
+          });
         }, (stripeDownpaymentError) => {
           voidWarranty(warrantyDBObject.ResponseID,
              warrantyDBObject.ContractNumber, () => {
@@ -392,12 +394,13 @@ router.post("/purchase",
                destroyWarrantyDBReconrAndSendError(res, warrantyDBObject,
                   stripeDownpaymentError+" "+voidWarrantyError)
              })
-      }, (error) => {
-        utils.sendError(res, error);
-      })
+        }, (error) => {
+          utils.sendError(res, error);
+        })
       } else {
-        let resultToSave = preparePurchaseResult(warrantyJsonBody);
-        res.json(resultToSave);
+        preparePurchaseResult(warrantyJsonBody.GeneratedContracts[0].ContractNumber, (json) => {
+          res.json(json);
+        });
       }
     }, (error) => {
       utils.sendError(res, error);
@@ -405,11 +408,16 @@ router.post("/purchase",
   });
 })
 
-function preparePurchaseResult(json) {
-  return {
-    Success: true,
-    ContractNumber: json.GeneratedContracts[0].ContractNumber
-  }
+//Prepares contract result
+//gets signaturePlaces from database so we can use them in the frontend
+function preparePurchaseResult(contr, callback) {
+  db.contractByNumber(contr, (warrenty) => {
+    callback({
+      Success: true,
+      ContractNumber: contr,
+      SignablePoints: JSON.parse(warrenty.signaturePlacesJSON.toString('ascii')).SignatureFields
+    });
+  });
 }
 
 function destroyWarrantyDBReconrAndSendError(res, warrantyDBObject, error) {
@@ -670,70 +678,81 @@ BlockReader.prototype.getCurrentPosition = function() {
 };
 
 router.get("/contract/:number", (req, res) => {
+  //The number of times the user has signed the contract
+  let signedPoints = req.query.SignedPoints;
+
   db.contractByNumber(req.params.number, (warranty) => {
-    const contractBLOB = warranty.ContractDocument;
-    const signaturePlacesBLOB = warranty.signaturePlacesJSON;
+    const contractBLOB = warranty.ContractDocument,
+          signaturePlacesBLOB = warranty.signaturePlacesJSON;
+
     let customerSignature = new Buffer(warranty.customerSignature.toString('ascii'), 'base64');
     if (!customerSignature) {
-      console.log("No customer signature");
+      return console.log("No customer signature");
     }
+
     const pathPrefix = "/tmp/"
-    let randStr = uuid.v4()
+    let randStr = uuid.v4();
     let signatureJpgFilename = pathPrefix+randStr+"_sig.jpg";
-    let tempPDFFilename = pathPrefix+randStr+".pdf"
+    let tempPDFFilename = pathPrefix+randStr+".pdf";
+
     imagemagick.convert({
         srcData: customerSignature,
         trim: true,
         format: 'JPEG',
         quality: 100 // (best) to 1 (worst)
     }, (err, convert_res) => {
-      console.log("err ", err);
+      if (!contractBLOB || err) {
+        console.log("err ", err);
+        return res.status(404).send('Sorry, we cannot find this contract!');
+      }
+
+      let origDoc = new Buffer(contractBLOB.toString('ascii'), 'base64');
+      fs.writeFileSync(tempPDFFilename, origDoc);
       fs.writeFileSync(signatureJpgFilename, convert_res);
-    // console.log(convert_res);
-    if (!contractBLOB) {
-      res.status(404).send('Sorry, we cannot find this contract!'); return;
-    }
-    let origDoc = new Buffer(contractBLOB.toString('ascii'), 'base64');
-    let signaturePlaces = JSON.parse(signaturePlacesBLOB.toString('ascii'))
-    fs.writeFileSync(tempPDFFilename, origDoc);
-    var writer = hummus.createWriterToModify(tempPDFFilename)
-/*    var pageModifier = new hummus.PDFPageModifier(writer, 0);
-    pageModifier.startContext().getContext().writeText(
-      'Hello ', 100,400, {
-       font: writer.getFontForFile('./century-gothic.ttf'),
-       size:60,
-       colorspace:'gray',
-       color:0x00
-    }).drawImage(10,10,'./sign.jpg',
-      {transformation:{width:100,height:100, proportional:true}});
-    pageModifier.endContext().writePage();
-*/
-    signaturePlaces.SignatureFields.forEach(elem => {
-      if (elem.Name !== 'BuyerSignature') return;
-      console.log("Signature Place: ", elem);
-      pageModifier = new hummus.PDFPageModifier(writer, elem.PageNumber-1);
-      pageModifier.startContext().getContext().drawImage(
-        elem.XCoordinate,elem.YCoordinate, signatureJpgFilename, {
-          transformation:{
-          width:elem.Width,
-          height:elem.Height,
-          proportional:true,
-          fit:"always",
-        }
+
+      let signaturePlaces = JSON.parse(signaturePlacesBLOB.toString('ascii'));
+      let writer = hummus.createWriterToModify(tempPDFFilename);
+      /*    var pageModifier = new hummus.PDFPageModifier(writer, 0);
+          pageModifier.startContext().getContext().writeText(
+            'Hello ', 100,400, {
+            font: writer.getFontForFile('./century-gothic.ttf'),
+            size:60,
+            colorspace:'gray',
+            color:0x00
+          }).drawImage(10,10,'./sign.jpg',
+            {transformation:{width:100,height:100, proportional:true}});
+          pageModifier.endContext().writePage();
+      */
+
+      let runs = 0;
+      signaturePlaces.SignatureFields.forEach((elem) => {
+        if (elem.Name !== 'BuyerSignature') return;
+        else if (runs > signedPoints-1) return;
+        else runs += 1;
+
+        console.log("Signature Place: ", elem);
+
+        pageModifier = new hummus.PDFPageModifier(writer, elem.PageNumber-1);
+        pageModifier.startContext().getContext().drawImage(
+          elem.XCoordinate,elem.YCoordinate, signatureJpgFilename, {
+            transformation: {
+              width: elem.Width,
+              height: elem.Height,
+              proportional: true,
+              fit: "always",
+            }
         });
         pageModifier.endContext().writePage();
-    });
-    writer.end();
+      });
+      writer.end();
 
-    var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(res), {log:'./MY_LOG_FILE'});
-    pdfWriter.appendPDFPagesFromPDF(tempPDFFilename);
-    pdfWriter.end();
-    res.end();
-    fs.removeSync(signatureJpgFilename);
-    fs.removeSync(tempPDFFilename);
-// res.send(origDoc);
+      var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(res), {log:'./MY_LOG_FILE'});
+      pdfWriter.appendPDFPagesFromPDF(tempPDFFilename);
+      pdfWriter.end();
+      res.end();
+      fs.removeSync(signatureJpgFilename);
+      fs.removeSync(tempPDFFilename);
     }) // imagemagick
-
   })
 })
 
