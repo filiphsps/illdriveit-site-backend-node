@@ -34,6 +34,6 @@ db.initDB(() => {
 });
 
 /* Make sure we recover if we for some reason crash */
-node.on('uncaughtException', function(err) {
+process.on('uncaughtException', function(err) {
     console.log(err);
 });
