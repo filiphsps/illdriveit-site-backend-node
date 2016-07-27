@@ -25,12 +25,15 @@ let email_server 		= emailjs.server.connect({
 exports.sendEmail = function (email, subject, user, variables, callback) {
     //Non-blocking
     process.nextTick(function() {
-        /* Read email html file */
+		
+        //Read email .html file
         fs.readFile('./email-templates/' + email + '.html', 'utf8', function (err, html) {
             if (err)
                 return callback(err);
             
             let body = html;
+			
+			//Replace keys with data
             for (var variable in variables) {
                 if (!variables.hasOwnProperty(variable)) continue;
                 
@@ -49,7 +52,7 @@ exports.sendEmail = function (email, subject, user, variables, callback) {
                     }]
             }
             
-            /* Send Email */
+            //Send the email
             email_server.send(email, function(err, res) {
                 callback(err, res);
             });
