@@ -37,7 +37,7 @@ exports.sendEmail = function (email, subject, user, variables, callback) {
             for (var variable in variables) {
                 if (!variables.hasOwnProperty(variable)) continue;
                 
-                body = body.replace('{{' + variable + '}}', variables[variable]);
+                body = body.split('{{' + variable + '}}').join(variables[variable]);
             }
             
             let email = {
