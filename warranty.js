@@ -724,6 +724,19 @@ router.get("/contract/:number", (req, res) => {
           pageModifier.endContext().writePage();
       */
 
+      //Logo
+      pageModifier = new hummus.PDFPageModifier(writer, 0);
+      pageModifier.startContext().getContext().drawImage(
+        460,680, path.resolve(__dirname)+'/logo.jpg', {
+          transformation: {
+            width: 80,
+            height: 80,
+            proportional: true,
+            fit: "always",
+          }
+      });
+      pageModifier.endContext().writePage();
+
       let runs = 0;
       signaturePlaces.SignatureFields.forEach((elem) => {
         if (elem.Name !== 'BuyerSignature') return;
