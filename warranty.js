@@ -808,7 +808,7 @@ router.get("/contract/:number", (req, res) => {
     })
 })
 
-router.get("/contract/flow/completed", (req, res) => {
+router.get('/flow/completed', (req, res) => {
     let user = req.body.user,
         emailjs = require('./controllers/email.js');
 
