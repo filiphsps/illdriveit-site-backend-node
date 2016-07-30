@@ -808,4 +808,25 @@ router.get("/contract/:number", (req, res) => {
     })
 })
 
+router.get("/contract/flow/completed", (req, res) => {
+    let user = req.body.user,
+        emailjs = require('./controllers/email.js');
+
+    emailjs.sendEmail(user.email, 'YOUR FORCEFIELD HAS BEEN ACTIVATED', {
+        name: first_name + ' ' + last_name,
+        email: user.email
+    }, {
+        full_name: first_name + ' ' + last_name,
+        contract_uri: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
+        receipt_uri: '',
+    }, (err) => {
+        if (err)
+            //TODO: Handle error
+            res.json({
+                status: 505,
+                error: err
+            });
+    });
+});
+
 module.exports.router = router;
