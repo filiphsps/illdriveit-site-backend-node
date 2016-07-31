@@ -16,7 +16,7 @@ let fs                  = require('fs'),
 	emailjs             = require('emailjs');
 let email_server 		= emailjs.server.connect({
     user: 'illdriveit-email',
-    password: 'TODO',
+    password: 'illdriveit21',
     host: 'smtp.sendgrid.net',
     port: '587',
     ssl: false
