@@ -361,11 +361,13 @@ router.post("/purchase",
         let quoteResponseId = req.body.quoteResponseId;
         let planId = req.body.planId
         let customerPrice = req.body.customerPrice
+
             // Commented out for test purposes
         let paymentOption = req.body.paymentOption;
         let downpaymentCard = formMBPFinanceAccountPayments(paymentOption.downpaymentCard, true);
         let financeCard = formMBPFinanceAccountPayments(paymentOption.financeCard, false);
         let firstPaymentDate = new Date();
+
         // firstPaymentDate.setMonth(firstPaymentDate.getMonth()+1);
         let firstPaymentDateString = firstPaymentDate.toMBPIString()
         console.log("First payment date: ", firstPaymentDateString);
@@ -450,6 +452,8 @@ router.post("/purchase",
             }, (error) => {
                 utils.sendError(res, error);
             });
+        }).catch((err) => {
+            res.json(err);
         });
     })
 
@@ -625,6 +629,8 @@ router.get("/plans", (req, res) => {
             plans: plans,
             planRequestId: quoteResponseId
         });
+    }).catch((err) => {
+        res.json(err);
     });
 });
 
