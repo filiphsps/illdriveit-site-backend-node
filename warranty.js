@@ -814,15 +814,15 @@ router.get("/contract/:number", (req, res) => {
     })
 })
 
-router.get('/flow/completed', (req, res) => {
+router.post('/flow/completed', (req, res) => {
     let user = req.body.user,
         emailjs = require('./controllers/email.js');
 
     emailjs.sendEmail(user.email, 'YOUR FORCEFIELD HAS BEEN ACTIVATED', {
-        name: first_name + ' ' + last_name,
+        name: user.first_name + ' ' + user.last_name,
         email: user.email
     }, {
-        full_name: first_name + ' ' + last_name,
+        full_name: user.first_name + ' ' + user.last_name,
         contract_uri: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
         receipt_uri: '',
     }, (err) => {
