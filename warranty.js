@@ -767,7 +767,7 @@ router.get("/contract/:number", (req, res) => {
             let writer = hummus.createWriterToModify(tempPDFFilename);
 
             //Add Logo
-            var pageModifier = new hummus.PDFPageModifier(writer, 0);
+            var pageModifier ;/*= new hummus.PDFPageModifier(writer, 0);
             pageModifier.startContext().getContext().drawImage(
                 460, 680, path.resolve(__dirname) + '/logo.jpg', {
                     transformation: {
@@ -777,7 +777,7 @@ router.get("/contract/:number", (req, res) => {
                         fit: "always",
                     }
                 });
-            pageModifier.endContext().writePage();
+            pageModifier.endContext().writePage();*/
 
             //Add signatures
             let runs = 0;
@@ -815,16 +815,17 @@ router.get("/contract/:number", (req, res) => {
 })
 
 router.post('/flow/completed', (req, res) => {
-    let user = req.body.user,
+    let user = req.body,
         emailjs = require('./controllers/email.js');
 
-    emailjs.sendEmail(user.email, 'YOUR FORCEFIELD HAS BEEN ACTIVATED', {
+    emailjs.sendEmail('purchase', 'YOUR FORCEFIELD HAS BEEN ACTIVATED', {
         name: user.first_name + ' ' + user.last_name,
         email: user.email
     }, {
         full_name: user.first_name + ' ' + user.last_name,
         contract_uri: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
         receipt_uri: '',
+		email: user.email
     }, (err) => {
         if (err)
             //TODO: Handle error
@@ -832,7 +833,16 @@ router.post('/flow/completed', (req, res) => {
                 status: 505,
                 error: err
             });
+		res.json({
+			status: 200
+		});
     });
+});
+
+router.get('/receipt', (req, res) => {
+    res.json({
+		todo: 'TODO'
+	});
 });
 
 module.exports.router = router;
