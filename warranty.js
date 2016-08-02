@@ -44,11 +44,12 @@ router.post("/verifyzip", (req, res) => {
     db.addZIP(zip, vin, () => {
         validateYear(vin, (yearIsValid) => {
             console.log("Year valid ", yearIsValid);
-            zipValidator.validateZIP(zip, (isZipValid) => {
+            zipValidator.validateZIP(zip, (isZipValid, state) => {
                 res.jsonp({
                     zipValid: isZipValid,
                     mileageValid: (mileage <= 36000),
-                    yearValid: yearIsValid
+                    yearValid: yearIsValid,
+                    state: state
                 });
                 return;
             })

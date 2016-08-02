@@ -39,7 +39,7 @@ function isStateSupported(state) {
 function validateZIP(zip, result) {
   db.getStateFromZIP(zip, (state) => {
       console.log("State for ZIP:",zip, "is", state);
-      result(isStateSupported(state)); return;
+      result(isStateSupported(state), state); return;
   }, (error) => {
     console.log(error);
     result(false); return ;
