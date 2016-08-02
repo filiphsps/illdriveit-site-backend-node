@@ -49,7 +49,8 @@ router.post("/verifyzip", (req, res) => {
                     zipValid: isZipValid,
                     mileageValid: (mileage <= 36000),
                     yearValid: yearIsValid,
-                    state: state
+                    state: state,
+                    city: require('cities').zip_lookup(zip).city
                 });
                 return;
             })
