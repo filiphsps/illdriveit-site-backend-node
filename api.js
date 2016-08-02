@@ -7,6 +7,9 @@ let app         = express();
 
 var urlencodedParser = bodyParser.urlencoded({ extended: false })
 app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 
 //Fix api calls from remote clients
 app.use(function (req, res, next) {

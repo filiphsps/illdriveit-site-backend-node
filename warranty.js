@@ -823,20 +823,23 @@ router.post('/flow/completed', (req, res) => {
         name: user.first_name + ' ' + user.last_name,
         email: user.email
     }, {
-        full_name: user.first_name + ' ' + user.last_name,
-        contract_uri: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
-        receipt_uri: '',
+        full_name: (user.first_name + ' ' + user.last_name).toUpperCase(),
+        contract_url: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
+        receipt_url: '',
 		email: user.email
     }, (err) => {
         if (err)
             //TODO: Handle error
-            res.json({
+            return res.json({
                 status: 505,
                 error: err
             });
+
 		res.json({
 			status: 200
 		});
+
+        console.log('Email sent to ' + user.email);
     });
 });
 
