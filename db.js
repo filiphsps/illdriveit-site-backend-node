@@ -35,7 +35,9 @@ var Warranties = sequelize.define('Warranties', {
   downpayment: Sequelize.DECIMAL,
   monthly_payment: Sequelize.DECIMAL,
   downpayment_card: Sequelize.STRING,
-  finance_payment_card: Sequelize.STRING
+  finance_payment_card: Sequelize.STRING,
+  downpayment_card_type: Sequelize.STRING,
+  finance_payment_card_type: Sequelize.STRING
 }, {
   tableName: 'site_warranties', // this will define the table's name
   indexes: [
@@ -135,39 +137,7 @@ function saveWarranty(warrantyResponse, inspectionRequest, paymentOption,
   Warranties.findOne({where:{InspectionRequestId: inspectionRequestId}})
   .then( (warrantyObj) => {
     if (warrantyObj === null) {
-      Warranties.create({
-        vin: inspectionRequest.vin,
-        firstName: inspectionRequest.first_name,
-        lastName: inspectionRequest.last_name,
-        mileage: inspectionRequest.mileage,
-        address1: inspectionRequest.address1,
-        address2: inspectionRequest.address2,
-        city: inspectionRequest.city,
-        state: inspectionRequest.state,
-        zip: inspectionRequest.zip,
-        phone: inspectionRequest.phone,
-        email: inspectionRequest.email,
-        date: inspectionRequest.date,
-        inspectionId: inspectionRequestId, // Hash of VIN+date
-        PlanIdentifier: firstWarranty.PlanIdentifier,
-        ContractNumber: firstWarranty.ContractNumber,
-        // TODO: turn it on in production
-        ContractDocument: firstWarranty.ContractDocument,
-        customerSignature:  inspectionRequest.signature,
-        signaturePlacesJSON: signaturePlacesJSON,
-        ResponseID: warrantyResponse.ResponseID,
-        number_of_months: paymentOption.number_of_months, // Months to finance
-        coverage_years: inspectionRequest.coverage_years,
-        coverage_miles: inspectionRequest.coverage_miles,
-        downpayment: paymentOption.downpayment,
-        monthly_payment: paymentOption.monthly_payment,
-        downpayment_card: downpaymentCardNumber,
-        finance_payment_card: financeCardNumber
-      }).then( (warranty) => {
-        success(warranty); return;
-      }, (error) => {
         failed("Cant create warranty"); return;
-      })
     } else {
       warrantyObj.PlanIdentifier = firstWarranty.PlanIdentifier;
       warrantyObj.ContractNumber = firstWarranty.ContractNumber;
@@ -211,7 +181,9 @@ function saveWarranty(warrantyResponse, inspectionRequest, paymentOption,
       downpayment: paymentOption.downpayment,
       monthly_payment: paymentOption.monthly_payment,
       downpayment_card: downpaymentCardNumber,
-      finance_payment_card: financeCardNumber
+      finance_payment_card: financeCardNumber,
+      downpayment_card_type: paymentOption.downpaymentCard.card_type,
+      finance_payment_card_type: paymentOption.financeCard.card_type
     }).then( (warranty) => {
       success(warranty); return;
     }, (error) => {

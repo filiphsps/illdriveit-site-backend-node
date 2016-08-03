@@ -304,7 +304,6 @@ function cardType(accountNumber) {
     function inRangeInclusive(value, start, end) {
         return ((value >= start) && (value <= end))
     }
-    //TODO: actual check
     let visaLengths = new Set([13, 16, 19]);
     // console.log("A/N:\"",accountNumber,"\" length ", accountNumber.length,
     // "starts ", accountNumber.startsWith("4"), " in ", (accountNumber.length in [13, 16, 19]) );
@@ -369,6 +368,13 @@ router.post("/purchase",
         let downpaymentCard = formMBPFinanceAccountPayments(paymentOption.downpaymentCard, true);
         let financeCard = formMBPFinanceAccountPayments(paymentOption.financeCard, false);
         let firstPaymentDate = new Date();
+        if (paymentOption.downpaymentCard) {
+          paymentOption.downpaymentCard.card_type = cardType(paymentOption.downpaymentCard.account_number);
+        }
+        if (paymentOption.financeCard) {
+          paymentOption.financeCard.card_type = cardType(paymentOption.financeCard.account_number);
+        }
+        console.log("Payment Options", JSON.stringify(paymentOption));
 
         // firstPaymentDate.setMonth(firstPaymentDate.getMonth()+1);
         let firstPaymentDateString = firstPaymentDate.toMBPIString()
@@ -844,10 +850,44 @@ router.post('/flow/completed', (req, res) => {
     });
 });
 
-router.get('/receipt', (req, res) => {
-    res.json({
-		todo: 'TODO'
-	});
+router.get('/receipt/:number', (req, res) => {
+  db.contractByNumber(req.params.number, (warranty) => {
+    decodeVin(warranty.vin, (vinDecodeResult) => {
+      let year = vinDecodeResult.years.reduce((previous, elem) => {
+          return Math.max(elem.year, previous);
+      }, 0);
+      let model = vinDecodeResult.model.name
+      let make = vinDecodeResult.make.name
+      let city = require('cities').zip_lookup(warranty.zip).city;
+      res.jsonp({
+        vin: warranty.vin,
+        first_name: warranty.firstName,
+        last_name: warranty.lastName,
+        address1: warranty.address1,
+        address2: warranty.address2,
+        city: city,
+        state: warranty.state,
+        zip: warranty.zip,
+        year: year,
+        make: make,
+        model: model,
+        mileage: warranty.mileage,
+        coverage_years: warranty.coverage_years,
+        coverage_miles: warranty.coverage_miles,
+        downpayment: warranty.downpayment,
+        monthly_payment: warranty.monthly_payment,
+        number_of_months: warranty.number_of_months,
+        downpayment_card: warranty.downpayment_card,
+        finance_payment_card: warranty.finance_payment_card,
+        downpayment_card_type: warranty.downpayment_card_type,
+        finance_payment_card_type: warranty.finance_payment_card_type
+      })
+    },(error) => {
+      utils.sendError(res, "Can't decode vin")
+    } )
+  }, (error) => {
+    utils.sendError(res, "Can't find contract")
+  })
 });
 
 module.exports.router = router;
