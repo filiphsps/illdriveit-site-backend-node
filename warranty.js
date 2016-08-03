@@ -852,6 +852,9 @@ router.post('/flow/completed', (req, res) => {
 
 router.get('/receipt/:number', (req, res) => {
   db.contractByNumber(req.params.number, (warranty) => {
+    if (!warranty) {
+      utils.sendError(res, "Can't find contract"); return;
+    }
     decodeVin(warranty.vin, (vinDecodeResult) => {
       let year = vinDecodeResult.years.reduce((previous, elem) => {
           return Math.max(elem.year, previous);
