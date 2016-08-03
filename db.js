@@ -29,7 +29,13 @@ var Warranties = sequelize.define('Warranties', {
   signaturePlacesJSON: Sequelize.BLOB,
   ResponseID: Sequelize.STRING,
   installmentSubscriptionId: Sequelize.STRING,
-  periodsToCancel: Sequelize.INTEGER.UNSIGNED
+  number_of_months: Sequelize.INTEGER.UNSIGNED, // Months to finance
+  coverage_years: Sequelize.INTEGER.UNSIGNED,
+  coverage_miles: Sequelize.INTEGER.UNSIGNED,
+  downpayment: Sequelize.DECIMAL,
+  monthly_payment: Sequelize.DECIMAL,
+  downpayment_card: Sequelize.STRING,
+  finance_payment_card: Sequelize.STRING
 }, {
   tableName: 'site_warranties', // this will define the table's name
   indexes: [
@@ -95,7 +101,7 @@ function preparedb(complete) {
   });
 }
 
-function saveWarranty(warrantyResponse, inspectionRequest,
+function saveWarranty(warrantyResponse, inspectionRequest, paymentOption,
    success, failed) {
   if ((typeof warrantyResponse.GeneratedContracts) !== 'object' ) {
     console.log("warrantyResponse.GeneratedContracts is not array.",
@@ -116,10 +122,33 @@ function saveWarranty(warrantyResponse, inspectionRequest,
   // console.log("before inspectionRequestId");
   let inspectionRequestId = utils.inspectionId(inspectionRequest);
   // console.log("after inspectionRequestId: ", inspectionRequestId);
+  // console.log("paymentOption", paymentOption);
+  let downpaymentCardNumber = paymentOption.downpaymentCard.account_number;
+  let financeCardNumber = paymentOption.financeCard.account_number;
+  if (downpaymentCardNumber && downpaymentCardNumber.length > 4) {
+    downpaymentCardNumber = downpaymentCardNumber.substr(downpaymentCardNumber.length -4, 4)
+  }
+  if (financeCardNumber && financeCardNumber.length > 4) {
+    financeCardNumber = financeCardNumber.substr(financeCardNumber.length -4, 4)
+  }
+  // console.log("after calculatingCardNumbers: ", inspectionRequestId);
   Warranties.findOne({where:{InspectionRequestId: inspectionRequestId}})
   .then( (warrantyObj) => {
     if (warrantyObj === null) {
       Warranties.create({
+        vin: inspectionRequest.vin,
+        firstName: inspectionRequest.first_name,
+        lastName: inspectionRequest.last_name,
+        mileage: inspectionRequest.mileage,
+        address1: inspectionRequest.address1,
+        address2: inspectionRequest.address2,
+        city: inspectionRequest.city,
+        state: inspectionRequest.state,
+        zip: inspectionRequest.zip,
+        phone: inspectionRequest.phone,
+        email: inspectionRequest.email,
+        date: inspectionRequest.date,
+        inspectionId: inspectionRequestId, // Hash of VIN+date
         PlanIdentifier: firstWarranty.PlanIdentifier,
         ContractNumber: firstWarranty.ContractNumber,
         // TODO: turn it on in production
@@ -127,7 +156,13 @@ function saveWarranty(warrantyResponse, inspectionRequest,
         customerSignature:  inspectionRequest.signature,
         signaturePlacesJSON: signaturePlacesJSON,
         ResponseID: warrantyResponse.ResponseID,
-        InspectionReportId: inspectionRequestId
+        number_of_months: paymentOption.number_of_months, // Months to finance
+        coverage_years: inspectionRequest.coverage_years,
+        coverage_miles: inspectionRequest.coverage_miles,
+        downpayment: paymentOption.downpayment,
+        monthly_payment: paymentOption.monthly_payment,
+        downpayment_card: downpaymentCardNumber,
+        finance_payment_card: financeCardNumber
       }).then( (warranty) => {
         success(warranty); return;
       }, (error) => {
@@ -138,7 +173,7 @@ function saveWarranty(warrantyResponse, inspectionRequest,
       warrantyObj.ContractNumber = firstWarranty.ContractNumber;
       warrantyObj.ContractDocument = new Buffer(firstWarranty.ContractDocument);
       warrantyObj.ResponseID = warrantyResponse.ResponseID;
-      customerSignature =  inspectionRequest.signature,
+
       signaturePlacesJSON = new Buffer(signaturePlacesJSON),
       warrantyObj.save().then( (warrantySuccessObj) => {
         succes(warrantySuccessObj); return;
@@ -170,6 +205,13 @@ function saveWarranty(warrantyResponse, inspectionRequest,
       customerSignature:  inspectionRequest.signature,
       signaturePlacesJSON: signaturePlacesJSON,
       ResponseID: warrantyResponse.ResponseID,
+      number_of_months: paymentOption.number_of_months, // Months to finance
+      coverage_years: inspectionRequest.coverage_years,
+      coverage_miles: inspectionRequest.coverage_miles,
+      downpayment: paymentOption.downpayment,
+      monthly_payment: paymentOption.monthly_payment,
+      downpayment_card: downpaymentCardNumber,
+      finance_payment_card: financeCardNumber
     }).then( (warranty) => {
       success(warranty); return;
     }, (error) => {

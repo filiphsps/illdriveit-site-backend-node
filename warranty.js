@@ -426,7 +426,7 @@ router.post("/purchase",
               ResponseID:"TestWarrantyResponseId"
             }*/
             let warrantyJsonBody = jsonBody;
-            db.saveWarranty(warrantyJsonBody, warrantyRequest, (warrantyDBObject) => {
+            db.saveWarranty(warrantyJsonBody, warrantyRequest, paymentOption, (warrantyDBObject) => {
                 if ((paymentOption.downpayment === req.body.customerPrice) &&
                     (paymentOption.number_of_months === 0)) {
                     console.log("Charging downpayment via Stripe");
