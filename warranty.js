@@ -832,7 +832,7 @@ router.post('/flow/completed', (req, res) => {
     }, {
         full_name: (user.first_name + ' ' + user.last_name).toUpperCase(),
         contract_url: 'https://high-quality.tech/illdriveit/warranty/contract/' + user.contract_id + '?SignedPoints=999',
-        receipt_url: '',
+        receipt_url: 'https://illdrive.it/forcefield/receipt/#' + user.contract_id,
 		email: user.email
     }, (err) => {
         if (err)
