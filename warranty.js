@@ -47,7 +47,7 @@ router.post("/verifyzip", (req, res) => {
             zipValidator.validateZIP(zip, (isZipValid, state) => {
                 res.jsonp({
                     zipValid: isZipValid,
-                    mileageValid: (mileage <= 36000),
+                    mileageValid: (mileage <= 60000),
                     yearValid: yearIsValid,
                     state: state,
                     city: require('cities').zip_lookup(zip).city
