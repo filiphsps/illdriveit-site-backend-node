@@ -98,7 +98,7 @@ function validateYear(vin, result) {
     getYear(vin, (yearResult) => {
         let now = new Date();
         let diff = now.getFullYear() - yearResult;
-        result((diff <= 3));
+        result((diff <= 10));
     })
 }
 
