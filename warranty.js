@@ -341,7 +341,7 @@ function formLender(paymentOption, customerPrice, firstPaymentDateString) {
         return null;
     } else {
         return {
-            DealerPaysMBPFinanceServiceFee: false,
+            DealerPaysMBPFinanceServiceFee: true,
             DownPaymentAmount: paymentOption.downpayment,
             FirstPaymentDate: firstPaymentDateString,
             MBPFinancePlanType: numberToStringTerm(paymentOption.number_of_months)
@@ -643,13 +643,6 @@ router.get("/plans", (req, res) => {
 });
 
 function installmentdetails(cost, coverageMonths) {
-    let feesDict = { // maps installment duration to fee price
-        6: 75,
-        12: 110,
-        15: 145,
-        18: 170,
-        24: 250
-    };
     /*
         Fiance terms depending on warranty terms
         One year  - 6 months
@@ -676,11 +669,8 @@ function installmentdetails(cost, coverageMonths) {
     }
     let financeTerms = financeTermDict[coverageMonths];
     let result = financeTerms.reduce((previous, element) => {
-        if (!(element in feesDict)) return previous;
-        let fee = feesDict[element];
-        let totalCost = cost + fee; // Fee should be included to all costs
-        let downpayment = totalCost * 0.1; // As argeed. TODO: make it setting
-        let costToFinance = (totalCost - downpayment) / element;
+        let downpayment = cost * 0.1; // As argeed. TODO: make it setting
+        let costToFinance = (cost - downpayment) / element;
         previous.push({
             downpayment: utils.roundToCentUp(downpayment),
             numberOfMonths: element,
