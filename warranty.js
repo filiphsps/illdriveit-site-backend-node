@@ -733,6 +733,13 @@ router.get("/contract/:number", (req, res) => {
     let signedPoints = req.query.SignedPoints;
 
     db.contractByNumber(req.params.number, (warranty) => {
+        if (warranty == null)
+            return res.status(404).json({
+                status: 404,
+                error: true,
+                message: 'Cannot find contract with id "' + req.params.number + '"'
+            });
+
         const contractBLOB = warranty.ContractDocument,
             signaturePlacesBLOB = warranty.signaturePlacesJSON;
 
@@ -841,46 +848,46 @@ router.post('/flow/completed', (req, res) => {
 });
 
 router.get('/receipt/:number', (req, res) => {
-  db.contractByNumber(req.params.number, (warranty) => {
-    if (!warranty) {
-      utils.sendError(res, "Can't find contract"); return;
-    }
-    decodeVin(warranty.vin, (vinDecodeResult) => {
-      let year = vinDecodeResult.years.reduce((previous, elem) => {
-          return Math.max(elem.year, previous);
-      }, 0);
-      let model = vinDecodeResult.model.name
-      let make = vinDecodeResult.make.name
-      let city = require('cities').zip_lookup(warranty.zip).city;
-      res.jsonp({
-        vin: warranty.vin,
-        first_name: warranty.firstName,
-        last_name: warranty.lastName,
-        address1: warranty.address1,
-        address2: warranty.address2,
-        city: city,
-        state: warranty.state,
-        zip: warranty.zip,
-        year: year,
-        make: make,
-        model: model,
-        mileage: warranty.mileage,
-        coverage_years: warranty.coverage_years,
-        coverage_miles: warranty.coverage_miles,
-        downpayment: warranty.downpayment,
-        monthly_payment: warranty.monthly_payment,
-        number_of_months: warranty.number_of_months,
-        downpayment_card: warranty.downpayment_card,
-        finance_payment_card: warranty.finance_payment_card,
-        downpayment_card_type: warranty.downpayment_card_type,
-        finance_payment_card_type: warranty.finance_payment_card_type
-      })
-    },(error) => {
-      utils.sendError(res, "Can't decode vin")
-    } )
-  }, (error) => {
-    utils.sendError(res, "Can't find contract")
-  })
+    db.contractByNumber(req.params.number, (warranty) => {
+        if (!warranty) {
+        utils.sendError(res, "Can't find contract"); return;
+        }
+        decodeVin(warranty.vin, (vinDecodeResult) => {
+        let year = vinDecodeResult.years.reduce((previous, elem) => {
+            return Math.max(elem.year, previous);
+        }, 0);
+        let model = vinDecodeResult.model.name
+        let make = vinDecodeResult.make.name
+        let city = require('cities').zip_lookup(warranty.zip).city;
+        res.jsonp({
+            vin: warranty.vin,
+            first_name: warranty.firstName,
+            last_name: warranty.lastName,
+            address1: warranty.address1,
+            address2: warranty.address2,
+            city: city,
+            state: warranty.state,
+            zip: warranty.zip,
+            year: year,
+            make: make,
+            model: model,
+            mileage: warranty.mileage,
+            coverage_years: warranty.coverage_years,
+            coverage_miles: warranty.coverage_miles,
+            downpayment: warranty.downpayment,
+            monthly_payment: warranty.monthly_payment,
+            number_of_months: warranty.number_of_months,
+            downpayment_card: warranty.downpayment_card,
+            finance_payment_card: warranty.finance_payment_card,
+            downpayment_card_type: warranty.downpayment_card_type,
+            finance_payment_card_type: warranty.finance_payment_card_type
+        })
+        },(error) => {
+        utils.sendError(res, "Can't decode vin")
+        } )
+    }, (error) => {
+        utils.sendError(res, "Can't find contract")
+    })
 });
 
 module.exports.router = router;
