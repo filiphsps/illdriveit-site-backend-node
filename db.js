@@ -2,8 +2,8 @@ var crypto = require('crypto');
 var path = require('path');
 var utils = require('./utilities.js');
 var Sequelize = require('sequelize')
-  , sequelize = new Sequelize('database_name', 'username', 'password', {
-      dialect: "sqlite", // or 'sqlite', 'postgres', 'mariadb'
+  , sequelize = new Sequelize('illdriveit_web_backend', 'siteback', 'kwe87Foz', {
+      dialect: "mysql", // or 'sqlite', 'postgres', 'mariadb'
       port:    3306, // or 5432 (for postgres)
       storage: path.resolve(__dirname)+'/db.sqlite'
     });
