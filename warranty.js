@@ -44,13 +44,14 @@ router.post("/verifyzip", (req, res) => {
     db.addZIP(zip, vin, () => {
         validateYear(vin, (yearIsValid) => {
             console.log("Year valid ", yearIsValid);
-            zipValidator.validateZIP(zip, (isZipValid, state) => {
+            zipValidator.validateZIP(zip, (isZipValid, state, city) => {
+              console.log("zip validated");
                 res.jsonp({
                     zipValid: isZipValid,
                     mileageValid: (mileage <= 60000),
                     yearValid: yearIsValid,
                     state: state,
-                    city: require('cities').zip_lookup(zip).city
+                    city: city
                 });
                 return;
             })
@@ -830,7 +831,7 @@ router.post('/flow/completed', (req, res) => {
         full_name: (user.first_name + ' ' + user.last_name).toUpperCase(),
         contract_url: 'https://illdrive.it/api/warranty/contract/' + user.contract_id + '?SignedPoints=999',
         receipt_url: 'https://illdrive.it/forcefield/receipt/#' + user.contract_id,
-		email: user.email
+		    email: user.email
     }, (err) => {
         if (err)
             //TODO: Handle error
