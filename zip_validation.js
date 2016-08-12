@@ -36,12 +36,11 @@ function isStateSupported(state) {
 }
 
 function validateZIP(zip, result) {
-	let state =  require('cities').zip_lookup(zip).state_abbr;
-	return result(isStateSupported(state), state);
-	
-	if (zip==='000') {
-		return result(false);
-	}
+	let zipLookup = require('cities').zip_lookup(zip);
+	let state =  zipLookup ? zipLookup.state_abbr : "";
+	let city = zipLookup ? zipLookup.city : "UNKNOWN";
+	result(isStateSupported(state), state);
+	return;
 }
 
 module.exports.validateZIP = validateZIP;
