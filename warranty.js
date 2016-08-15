@@ -9,12 +9,15 @@ var uuid = require('node-uuid');
 var zipValidator = require('./zip_validation.js')
 var imagemagick = require('imagemagick-native')
 
-var stripeWarrantyApiKeyProduction = "ENTER_HERE_YOUR_PRODUCTION_KEY"
+var stripeWarrantyApiKeyProduction = "sk_live_d8i83VROU8IUb7sqe8095UWu"
 var stripeWarrantyApiKeyTesting = "sk_test_nPr0hqYbXY4wc1STkZvKukWX"
 var stripe = require('stripe')(stripeWarrantyApiKeyTesting);
 
+var warrantyCompanyAPIServerTestURL = "http://testdealerservices.mbpnetwork.com"
+var warrantyCompanyAPIServerProductionURL = "https://dealerservices.mbpnetwork.com"
+
 var MBPCredentials = {
-    Server: "http://testdealerservices.mbpnetwork.com",
+    Server: warrantyCompanyAPIServerTestURL,
     Dealercode: "012065",
     Accountusername: "tirekickers",
     AccountPassword: "WERQ890XcvzYD!",
