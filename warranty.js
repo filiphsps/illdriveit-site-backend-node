@@ -350,8 +350,36 @@ function formLender(paymentOption, customerPrice, firstPaymentDateString) {
     }
 }
 
+function calculateVehiclePurchasePrice(req, res, next) {
+  let warrantyRequest = req.body.warrantyRequest;
+  getYear(warrantyRequest.vin, (year) => {
+    let price = 7500;
+    switch (year) {
+      case 2016 :
+        price = 40000; break;
+      case 2015 :
+        price = 35000; break;
+      case 2014 :
+        price = 30000; break;
+      case 2013 :
+        price = 25000; break;
+      case 2012 :
+        price = 20000; break;
+      case 2011 :
+        price = 20000; break;
+      default:
+        price = 20000 - (2011 - year)*2500;
+    }
+    if (price<7500) price = 7500;
+    if (price>40000) price = 40000;
+    req.body.warrantyRequest.vehiclePrice = price;
+    next();
+  })
+}
+
 router.post("/purchase",
     verifyVehiclePost,
+    calculateVehiclePurchasePrice,
     (req, res) => {
         let warrantyRequest = req.body.warrantyRequest
         let dateObj = new Date();
@@ -359,7 +387,8 @@ router.post("/purchase",
         let date = (dateObj.getMonth() + 1).toString() + "-" +
             dateObj.getDate().toString() + "-" +
             dateObj.getFullYear().toString();
-        console.log("Purchase date: ", date, "VIN ", warrantyRequest.vin);
+        console.log("Purchase date: ", date, "VIN ", warrantyRequest.vin,
+        "Vehicle purchase price: ", warrantyRequest.vehiclePrice);
         let quoteResponseId = req.body.quoteResponseId;
         let planId = req.body.planId
         let customerPrice = req.body.customerPrice
@@ -387,7 +416,7 @@ router.post("/purchase",
             QuoteResponseID: quoteResponseId,
             VIN: warrantyRequest.vin, //"1FD7X2A66BEA98347",
             Mileage: warrantyRequest.mileage, //10,
-            PurchasePrice: 10000,
+            PurchasePrice: warrantyRequest.vehiclePrice,
             PurchaseDate: date, //"4-2-2016",
             Statustype: "used",
             IsFirstOwner: false,
