@@ -30,7 +30,9 @@ function isStateSupported(state) {
 		'NH', //New Hampshire
 		'VT', //Vermont
 		'MS', //Mississippi
-		'GA'  //Georgia
+		'GA', //Georgia
+		'NE', // Nebraska
+		'AL'  // Alabama
     ]);
     return states.has(state);
 }
