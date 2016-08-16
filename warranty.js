@@ -525,7 +525,7 @@ function sendPaymentError(res, error, contractNumber) {
 }
 
 function voidWarranty(purchaseResponseID, contractNumber, success, failed) {
-    requestify.post(MBPCredentials.Server + "/api/purchasecontract.json", {
+    requestify.post(MBPCredentials.Server + "/api/voidcontract.json", {
         Dealercode: MBPCredentials.Dealercode,
         Accountusername: MBPCredentials.Accountusername,
         AccountPassword: MBPCredentials.AccountPassword,
