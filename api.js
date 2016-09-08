@@ -21,6 +21,8 @@ app.use(function (req, res, next) {
 
 //Put payments router in place
 app.use("/warranty", warranty.router);
+//Add v2 api router
+app.use('/v2', require('./v2'));
 
 app.get('/', (req, res) => {
     res.send('illdrive.it API');
