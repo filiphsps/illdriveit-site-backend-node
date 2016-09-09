@@ -29,11 +29,11 @@ app.route('/vehicle/info/make')
     .get(Vehicle.GetMake);
 app.route('/vehicle/info/model')
     .get(Vehicle.GetModel);
-/*app.route('/vehicle/info/cylinders')
+app.route('/vehicle/info/cylinders')
     .get(Vehicle.GetCylinders);
 app.route('/vehicle/info/wheel')
     .get(Vehicle.GetWheel);
 app.route('/vehicle/info/fuel')
-    .get(Vehicle.GetFuel);*/
+    .get(Vehicle.GetFuel);
 
 module.exports = app;
