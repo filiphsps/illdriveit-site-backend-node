@@ -613,7 +613,7 @@ router.get("/plans", (req, res) => {
     }
 
     let dateObj = new Date();
-    let date = dateObj.getMonth().toString() + "-" +
+    let date = (dateObj.getMonth().toString()+1) + "-" +
         dateObj.getDate().toString() + "-" +
         dateObj.getFullYear().toString();
     console.log("Purchase date: ", date, "VIN ", vin);
