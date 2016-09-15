@@ -57,6 +57,7 @@ module.exports.GetModel = (req, res) => {
         VehicleYear: req.query.year,
         MakeCode: req.query.make
     }, (err, models) => {
+        console.log(models);
         if (err || !models)
             return res.json({
                 status: 500,
@@ -269,7 +270,7 @@ module.exports.GetFuel = (req, res) => {
                 error: err,
                 error_message: 'Something went wrong on mbpnetwork\'s end.'
             });
-        else if (!fuel)
+        else if (!fuel.VehicleFuelTypes)
             return res.json({
                 status: 500,
                 error: 'inavlid make, year, cylinders, wheel or model',
@@ -290,6 +291,99 @@ module.exports.GetFuel = (req, res) => {
         res.json({
             status: 200,
             data: data
+        });
+    });
+}
+
+// GET /vehicle/info/quote
+// year: number, year of car creation
+// make: string, the make code
+// model: string, the car model
+// cylinder: number, amount of cylinders
+//
+// Exposes all quotes for the car from MBPN.
+module.exports.GetQuote = (req, res) => {
+    if (!req.query.year)
+        return res.json({
+            status: 500,
+            error: 'year is undefined',
+            error_message: 'The year is required.'
+        });
+    if (!req.query.make)
+        return res.json({
+            status: 500,
+            error: 'make is undefined',
+            error_message: 'The maker is required.'
+        });
+    if (!req.query.model)
+        return res.json({
+            status: 500,
+            error: 'model is undefined',
+            error_message: 'The model is required.'
+        });
+    if (!req.query.cylinders)
+        return res.json({
+            status: 500,
+            error: 'cylinders is undefined',
+            error_message: 'The cylinders is required.'
+        });
+    if (!req.query.wheel)
+        return res.json({
+            status: 500,
+            error: 'wheel is undefined',
+            error_message: 'The wheel is required.'
+        });
+    if (!req.query.fuel)
+        return res.json({
+            status: 500,
+            error: 'wheel is undefined',
+            error_message: 'The wheel is required.'
+        });
+    
+    let params = {
+        VehicleYear: req.query.year,
+        VehicleMakeCode: req.query.make,
+        VehicleModelCode: req.query.model,
+        VehicleCylinders: req.query.cylinders,
+        VehicleDrivingWheelsTypeCode: req.query.wheel,
+        VehicleFuelTypeCode: req.query.fuel,
+        Mileage: req.query.miles,
+        HasTurbo: false,
+
+        PurchasePrice: 6000,
+        PurchaseDate: (new Date()).toISOString().slice(0, -5) + '-05:00',
+        Statustype: 'Used',
+    }
+    MBPM.request('getquote', params, (err, quote) => {
+        console.log(quote);
+        //console.log(params);
+        if (err || !quote)
+            return res.json({
+                status: 500,
+                error: err,
+                error_message: 'Something went wrong on mbpnetwork\'s end.'
+            });
+        else if (!quote)
+            return res.json({
+                status: 500,
+                error: 'inavlid make, year, cylinders, wheel or model',
+                error_message: 'make, year, cylinders, wheel or model is invalid.'
+            });
+        
+        /* Standardize VehicleFuelTypes */
+        /*let data = [];
+
+        for (var n = 0; n < fuel.VehicleFuelTypes.length; n++) {
+            data.push({
+                id: fuel.VehicleFuelTypes[n].FuelTypeCode,
+                turbo: fuel.VehicleFuelTypes[n].HasTurbo,
+                name: fuel.VehicleFuelTypes[n].Description,
+            });
+        }*/
+
+        res.json({
+            status: 200,
+            data: quote
         });
     });
 }

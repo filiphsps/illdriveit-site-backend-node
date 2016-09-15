@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 app.route('/').get((req, res) => {
     res.json({
         status: 200,
-        message: 'illdrive.it API v2.0'
+        message: 'illdrive.it API v2.0',
     });
 });
 
@@ -35,5 +35,15 @@ app.route('/vehicle/info/wheel')
     .get(Vehicle.GetWheel);
 app.route('/vehicle/info/fuel')
     .get(Vehicle.GetFuel);
+app.route('/vehicle/info/quote')
+    .get(Vehicle.GetQuote);
+
+app.get('*', function(req, res){
+    res.status(404).json({
+        status: 404,
+        error: 'endpoint not defined',
+        error_message: 'Endpoint not found.'
+    });
+});
 
 module.exports = app;

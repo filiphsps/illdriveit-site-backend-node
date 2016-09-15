@@ -626,7 +626,7 @@ router.get("/plans", (req, res) => {
             Mileage: mileage, //10,
             PurchasePrice: 6000,
             PurchaseDate: date, //"4-2-2016",
-            Statustype: "used",
+            Statustype: "Used",
             format: "json"
         }
     }).then((response) => {
