@@ -613,7 +613,7 @@ router.get("/plans", (req, res) => {
     }
 
     let dateObj = new Date();
-    let date = (dateObj.getMonth().toString()+1) + "-" +
+    let date = (dateObj.getMonth()+1).toString() + "-" +
         dateObj.getDate().toString() + "-" +
         dateObj.getFullYear().toString();
     console.log("Purchase date: ", date, "VIN ", vin);
@@ -626,7 +626,7 @@ router.get("/plans", (req, res) => {
             Mileage: mileage, //10,
             PurchasePrice: 6000,
             PurchaseDate: date, //"4-2-2016",
-            Statustype: "Used",
+            Statustype: "used",
             format: "json"
         }
     }).then((response) => {
