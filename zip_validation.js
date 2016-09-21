@@ -33,6 +33,7 @@ function isStateSupported(state) {
 		'GA', //Georgia
 		'NE', // Nebraska
 		'UT', // Utah
+		'VA', // Virginia
 		'AL'  // Alabama
     ]);
     return states.has(state);
