@@ -57,7 +57,6 @@ module.exports.GetModel = (req, res) => {
         VehicleYear: req.query.year,
         MakeCode: req.query.make
     }, (err, models) => {
-        console.log(models);
         if (err || !models)
             return res.json({
                 status: 500,
@@ -356,7 +355,6 @@ module.exports.GetQuote = (req, res) => {
     }
     MBPM.request('getquote', params, (err, quote) => {
         console.log(quote);
-        //console.log(params);
         if (err || !quote)
             return res.json({
                 status: 500,
