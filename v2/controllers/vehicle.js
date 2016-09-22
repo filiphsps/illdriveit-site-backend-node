@@ -29,7 +29,7 @@ module.exports.GetMake = (req, res) => {
 
         res.json({
             status: 200,
-            data: data
+            data: remove_motorcycles(data)
         });
     });
 }
@@ -386,4 +386,52 @@ module.exports.GetQuote = (req, res) => {
             data: quote
         });
     });
+}
+
+
+
+/* Helper functions
+======================================================== */
+
+// remove_motorcycles
+// motorcycles: array, the motorcycles array
+// 
+// Removes the motorcycle makers from the makers array
+function remove_motorcycles (motorcycles) {
+    let res = [];
+    let motorcycles_makers = [
+        'aprilia',
+        'arctic car',
+        'arctic cat',
+        'bennche',
+        'can-am',
+        'ducati',
+        'harley-davidson',
+        'husqvarna',
+        'indian motorcycle co.',
+        'kawasaki',
+        'ktm',
+        'm.v. augusta',
+        'moto guzzi',
+        'piaggio',
+        'polaris',
+        'royal enfield',
+        'royal enfield motors',
+        'triumph motorcycle',
+        'ural',
+        'vespa',
+        'victory',
+        'victory motorcycles',
+        'yamaha',
+        'zero motorcycles inc',
+    ];
+
+    for(var n = 0; n < motorcycles.length; n++) {
+        if (motorcycles_makers.indexOf(motorcycles[n].name.toLowerCase()) >= 0)
+            continue;
+
+        res.push(motorcycles[n]);
+    }
+
+    return res;
 }
