@@ -301,7 +301,10 @@ module.exports.GetFuel = (req, res) => {
 // cylinder: number, amount of cylinders
 //
 // Exposes all quotes for the car from MBPN.
-module.exports.GetQuote = (req, res) => {
+module.exports.GetQuote = (req, res, turbo) => {
+    if (typeof(turbo) !== 'boolean')
+        turbo = false;
+
     if (!req.query.year)
         return res.json({
             status: 500,
@@ -347,41 +350,72 @@ module.exports.GetQuote = (req, res) => {
         VehicleDrivingWheelsTypeCode: req.query.wheel,
         VehicleFuelTypeCode: req.query.fuel,
         Mileage: req.query.miles,
-        HasTurbo: false,
+        HasTurbo: (turbo || false),
 
         PurchasePrice: 6000,
-        PurchaseDate: (new Date()).toISOString().slice(0, -5) + '-05:00',
+        PurchaseDate: (new Date()).toISOString().slice(0, -5) + '-00:00',
         Statustype: 'Used',
     }
+
     MBPM.request('getquote', params, (err, quote) => {
-        console.log(quote);
-        if (err || !quote)
-            return res.json({
-                status: 500,
-                error: err,
-                error_message: 'Something went wrong on mbpnetwork\'s end.'
-            });
-        else if (!quote)
+        if (err || !quote || !quote['Programs']) {
+            if ((err || !quote || !quote['Programs']) && (turbo === true))
+                return res.json({
+                    status: 500,
+                    error: err,
+                    error_message: 'Something went wrong on mbpnetwork\'s end.'
+                });
+
+            //See if we support the car with turbo
+            return module.exports.GetQuote(req, res, true);
+
+        } else if (!quote)
             return res.json({
                 status: 500,
                 error: 'inavlid make, year, cylinders, wheel or model',
                 error_message: 'make, year, cylinders, wheel or model is invalid.'
             });
         
-        /* Standardize VehicleFuelTypes */
-        /*let data = [];
+        let plans = quote.Programs[0].Plans,
+            options = {};
 
-        for (var n = 0; n < fuel.VehicleFuelTypes.length; n++) {
-            data.push({
-                id: fuel.VehicleFuelTypes[n].FuelTypeCode,
-                turbo: fuel.VehicleFuelTypes[n].HasTurbo,
-                name: fuel.VehicleFuelTypes[n].Description,
+        //Months
+        for (var n = 0; n < plans.length; n++) {
+            if (options[(plans[n].CoverageMonths.toString())] !== undefined)
+                continue;
+            
+            if ( plans[n].PlanTypeDescription !== 'PREMIUM')
+                continue;
+            
+            //Add the months value as an option
+            options[(plans[n].CoverageMonths.toString())] = {}
+        }
+
+        //Miles
+        for (var n = 0; n < plans.length; n++) {
+            if (options[(plans[n].CoverageMonths.toString())]
+                        [(plans[n].CoverageMiles.toString())] !== undefined)
+                continue;
+            
+            //Add the miles to month as an option
+            //Eg oprions.[months].[miles]
+            options[(plans[n].CoverageMonths.toString())]
+                [(plans[n].CoverageMiles.toString())] = {
+                    total: plans[n].CustomerPrice
+                };
+        }
+
+        let result = calc_finance_options(options);
+        if (!result)
+            return res.json({
+                status: 500,
+                error: null,
+                error_message: 'Something went wrong on mbpnetwork\'s end.'
             });
-        }*/
 
         res.json({
             status: 200,
-            data: quote
+            data: result
         });
     });
 }
@@ -401,6 +435,7 @@ function remove_motorcycles (motorcycles) {
         'aprilia',
         'arctic car',
         'arctic cat',
+        'artic cat',
         'bennche',
         'can-am',
         'ducati',
@@ -432,4 +467,56 @@ function remove_motorcycles (motorcycles) {
     }
 
     return res;
+}
+
+// calc_finance_options
+// plans: array, the plans array
+//
+// Adds FinanceOptions array to every plan
+function calc_finance_options (plans) {
+    let terms = {
+        '12': [6],
+        '24': [6, 12],
+        '36': [12, 15, 18],
+        '48': [12, 15, 24],
+        '60': [12, 15, 24]
+    };
+
+    for (var month in plans){
+        let months = plans[month.toString()];
+        if (!plans.hasOwnProperty(month))
+            continue;
+
+        for (var mile in month){
+            if (!month.hasOwnProperty(mile))
+                continue;
+
+            let miles = months[Object.keys(months)[mile]];
+            if (!miles)
+                continue;
+            
+            let total = months[Object.keys(months)[mile]].total;
+            if (!total)
+                continue;
+
+            //one 10th = down payment
+            let down_payment = total * 0.1;
+            let monthly_payment = total * 0.9;
+            let options = [];
+
+            for (var n = 0; n < terms[month].length; n++) {
+                options.push({
+                    months: terms[month][n],
+                    payment: monthly_payment / (terms[month][n])
+                });
+            }
+
+            months[Object.keys(months)[mile].toString()] = {
+                total: total,
+                down_payment: down_payment,
+                finance_options: options
+            };
+        }
+    }
+    return plans;
 }
