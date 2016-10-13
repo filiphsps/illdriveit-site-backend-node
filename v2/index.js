@@ -37,6 +37,10 @@ app.route('/vehicle/info/fuel')
     .get(Vehicle.GetFuel);
 app.route('/vehicle/info/quote')
     .get(Vehicle.GetQuote);
+app.route('/vehicle/info/buy')
+    .get(Vehicle.GetBuy);
+app.route('/vehicle/info/contract')
+    .get(Vehicle.GetQuote);
 
 app.get('*', function(req, res){
     res.status(404).json({

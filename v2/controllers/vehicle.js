@@ -298,6 +298,7 @@ module.exports.GetFuel = (req, res) => {
 // year: number, year of car creation
 // make: string, the make code
 // model: string, the car model
+// miles: number, the miles driven
 // cylinder: number, amount of cylinders
 //
 // Exposes all quotes for the car from MBPN.
@@ -338,8 +339,14 @@ module.exports.GetQuote = (req, res, turbo) => {
     if (!req.query.fuel)
         return res.json({
             status: 500,
-            error: 'wheel is undefined',
+            error: 'fuel is undefined',
             error_message: 'The wheel is required.'
+        });
+    if (!req.query.miles)
+        return res.json({
+            status: 500,
+            error: 'miles is undefined',
+            error_message: 'The miles is required.'
         });
     
     let params = {
@@ -378,6 +385,8 @@ module.exports.GetQuote = (req, res, turbo) => {
         
         let plans = quote.Programs[0].Plans,
             options = {};
+
+        console.log(plans);
 
         //Months
         for (var n = 0; n < plans.length; n++) {
@@ -420,6 +429,108 @@ module.exports.GetQuote = (req, res, turbo) => {
     });
 }
 
+// GET /vehicle/info/buy
+// miles: number, the miles driven
+// vin: string, the VIN
+//
+// Exposes all quotes for the car from MBPN.
+module.exports.GetBuy = (req, res, quote) => {
+    if (typeof(quote) !== 'object')
+        quote = null;
+    
+    console.log(req.query);
+    
+    if (!req.query.miles)
+        return res.json({
+            status: 500,
+            error: 'miles is undefined',
+            error_message: 'The miles is required.'
+        });
+    if (!req.query.vin)
+        return res.json({
+            status: 500,
+            error: 'vin is undefined',
+            error_message: 'The vin is required.'
+        });
+    
+    //Get plans from VIN, if it doesnt match; pick the closest one.
+    if (!quote) {
+        let params = {
+            VIN:            req.query.vin,
+            Mileage:        req.query.miles,
+            PurchasePrice:  6000,
+            PurchaseDate:   (new Date()).toISOString().slice(0, -5) + '-00:00',
+            Statustype:     'used',
+        }
+
+        return MBPM.request('getquote', params, (err, quote) => {
+            console.log(quote);
+            console.log(err);
+
+            if (err)
+                return res.json({
+                    status: 500,
+                    error: 'car != vin',
+                    error_message: 'The selected car doesn\'t match the VIN.'
+                });
+
+            return module.exports.GetBuy(req, res, quote);
+        });
+    }
+
+    
+    //const Signature = req.query.signature.split(',')[1];
+    
+    let down_payment_card =  {
+
+    };
+    let params = {
+        QuoteResponseID:        req.query.quote_id,
+        VIN:                    req.query.vin,
+        Mileage:                req.query.miles,
+
+        PurchasePrice:          6000,
+        PurchaseDate:           (new Date()).toISOString().slice(0, -5) + '-00:00',
+        Statustype:             'used',
+
+        Customer: {
+            FirstName:          req.query.user_first_name,
+            LastName:           req.query.user_last_name,
+            Address1:           req.query.user_address1,
+            Address2:           req.query.user_address2,
+            City:               req.query.user_city,
+            ZipCode:            req.query.user_zip,
+            StateAbbreviation:  req.query.user_state,
+            HomePhoneNumber:    req.query.user_phone,
+            EmailAddress:       req.query.user_email,
+        },
+
+        //The plans to purchase
+        Plans: [{
+            PlanIdentifier: req.query.plan_id,
+            CustomerPrice: req.query.plan_price,
+
+            /* Finance-Only */
+            Lender: (!req.query.plan_months) ? null : {
+                DealerPaysMBPFinanceServiceFee: true,
+                DownPaymentAmount: (!req.query.plan_months) ? req.query.plan_price : req.query.plan_down,
+                FirstPaymentDate: mbpi_first_payment_date((new Date())),
+                MBPFinancePlanType: mbpi_months_to_string(req.query.plan_months)
+            },
+            MBPFinanceAccountPayments: ((!req.query.plan_months) ? null : [down_payment_card, down_payment_card])
+        }],
+    }
+
+    MBPM.request('purchasecontract', params, (err, result) => {
+        console.log(result);
+        console.log(err);
+
+        res.json({
+            status: 200,
+            data: result
+        });
+    });
+}
 
 
 /* Helper functions
@@ -519,4 +630,40 @@ function calc_finance_options (plans) {
         }
     }
     return plans;
+}
+
+// based on http://stackoverflow.com/a/19138852
+function credit_card_typ (number) {
+    var re = {
+        Visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
+        MasterCard: /^5[1-5][0-9]{14}$/,
+        AmericanExpress: /^3[47][0-9]{13}$/,
+        Discover: /^6(?:011|5[0-9]{2})[0-9]{12}$/,
+    }
+
+    for (var key in re) {
+        if (re[key].test(number)) {
+            return key
+        }
+    }
+
+    return 'Unknown';
+}
+
+function mbpi_first_payment_date (date) {
+    return (date.getMonth() + 1).toString() + "-" + date.getDate().toString() + "-" + date.getFullYear().toString();
+}
+function mbpi_months_to_string (months) {
+    let opt = {
+        6:  'SixMonth',
+        12: 'TwelveMonth',
+        15: 'FifteenMonth',
+        18: 'EighteenMonth',
+        24: 'TwentyFourMonth'
+    }
+
+    if (months in opt)
+        return opt[months];
+    else
+        return null;
 }
