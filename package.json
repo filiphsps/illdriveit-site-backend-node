@@ -1,7 +1,7 @@
 {
-  "name": "uins-backend",
-  "version": "0.0.1",
-  "description": "Backend for illdrive.it site",
+  "name": "illdriveit-backend",
+  "version": "0.1.0",
+  "description": "Backend for illdrive.it",
   "main": "api.js",
   "scripts": {
     "test": "node api.js"
@@ -10,11 +10,7 @@
     "type": "git",
     "url": "git+https://QuantumDesign@bitbucket.org/QuantumDesign/illdrive-site-backend-node.git"
   },
-  "keywords": [
-    "REST"
-  ],
-  "author": "Rostyslav Drutsky",
-  "license": "ISC",
+  "author": "illdrive.it",
   "homepage": "https://bitbucket.org/QuantumDesign/illdriveit-site-backend-node#readme",
   "dependencies": {
     "body-parser": "^1.15.1",

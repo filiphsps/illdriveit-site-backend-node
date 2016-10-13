@@ -410,11 +410,13 @@ module.exports.GetQuote = (req, res, turbo) => {
             //Eg oprions.[months].[miles]
             options[(plans[n].CoverageMonths.toString())]
                 [(plans[n].CoverageMiles.toString())] = {
-                    total: plans[n].CustomerPrice
+                    total: plans[n].CustomerPrice,
+                    id: plans[n].PlanIdentifier,
+                    quote_id: quote.ResponseID
                 };
         }
 
-        let result = calc_finance_options(options);
+        let result = calc_finance_options(options, quote.ResponseID);
         if (!result)
             return res.json({
                 status: 500,
@@ -525,6 +527,13 @@ module.exports.GetBuy = (req, res, quote) => {
         console.log(result);
         console.log(err);
 
+        if (err)
+            return res.json({
+                status: 500,
+                error: err,
+                error_message: 'Something went wrong on mbpnetwork\'s end.'
+            });
+
         res.json({
             status: 200,
             data: result
@@ -584,7 +593,7 @@ function remove_motorcycles (motorcycles) {
 // plans: array, the plans array
 //
 // Adds FinanceOptions array to every plan
-function calc_finance_options (plans) {
+function calc_finance_options (plans, quote_id) {
     let terms = {
         '12': [6],
         '24': [6, 12],
@@ -609,6 +618,10 @@ function calc_finance_options (plans) {
             let total = months[Object.keys(months)[mile]].total;
             if (!total)
                 continue;
+            
+            let id = months[Object.keys(months)[mile]].id;
+            if (!id)
+                continue;
 
             //one 10th = down payment
             let down_payment = total * 0.1;
@@ -624,6 +637,8 @@ function calc_finance_options (plans) {
 
             months[Object.keys(months)[mile].toString()] = {
                 total: total,
+                id: id,
+                quote_id: quote_id,
                 down_payment: down_payment,
                 finance_options: options
             };
