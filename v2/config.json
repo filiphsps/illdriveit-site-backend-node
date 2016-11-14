@@ -1,0 +1,15 @@
+{
+    "endpoint": "mongodb://backend:hLaHDsM649kSkdx7@ds013981.mlab.com:13981/illdriveit",
+
+    "mbp": {
+        "dev": true,
+        "host": "https://dealerservices.mbpnetwork.com",
+        "host_dev": "http://testdealerservices.mbpnetwork.com"
+    },
+
+    "stripe": {
+        "dev": true,
+        "key": "sk_live_d8i83VROU8IUb7sqe8095UWu",
+        "key_dev": "sk_test_nPr0hqYbXY4wc1STkZvKukWX"
+    }
+}

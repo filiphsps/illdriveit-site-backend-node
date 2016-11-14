@@ -1,5 +1,8 @@
 'use strict';
-let MBPM = require('./mbpn');
+let MBPM = require('./mbpn'),
+    config = require('../config'),
+    Contract = require('../models/contract');
+let stripe = require('stripe')(config.stripe.dev ? config.stripe.key_dev : config.stripe.key);
 
 
 // GET /vehicle/info/make
@@ -524,21 +527,72 @@ module.exports.GetBuy = (req, res, quote) => {
     }
 
     MBPM.request('purchasecontract', params, (err, result) => {
-        console.log(result);
-        console.log(err);
-
         if (err)
             return res.json({
                 status: 500,
                 error: err,
                 error_message: 'Something went wrong on mbpnetwork\'s end.'
             });
+        
+        //TODO: Monthly
 
-        res.json({
-            status: 200,
-            data: result
+        stripe.charges.create({
+            amount: req.query.plan_price,
+            currency: 'usd',
+            receipt_email: req.query.user_email,
+
+            source: {
+                exp_month: req.query.down_month,
+                exp_year: req.query.down_year,
+                number: req.query.down_number.replace(/\D/g, ''),
+                cvc: req.query.down_ccv,
+                object: 'card',
+            },
+
+            description: 'Downpayment on warranty for ' + req.query.user_first_name + ' ' + req.query.user_last_name,
+        }, (err, charge) => {
+            if (err) {
+                // The card has been declined
+                console.log("card declined: ", err.raw, " for ", charge);
+                
+                //Error
+                //TODO: Remove contract
+                return res.json({
+                    status: 500,
+                    error: 'card_declined',
+                    error_message: 'The card was declined.'
+                });
+
+            } else {
+                let contract = new Contract({
+                    _id: result.GeneratedContracts[0].ContractNumber,
+                    blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
+                });
+                contract.save(function (err, result) {
+                    const contract = {
+                        blob: new Buffer(result.blob, 'base64'),
+                        id: result._id
+                    };
+
+                    //TODO
+                    return res.json({
+                        status: 200,
+                        data: {
+                            contract_id: contract.id,
+                            contract_url: 'vehicle/info/contract/' + contract.id,
+                            contract_filetype: 'pdf',
+                        }
+                    });
+                });
+
+            }
         });
     });
+}
+
+module.exports.GetContract = (req, res) => {
+    //TODO: Auth?
+
 }
 
 

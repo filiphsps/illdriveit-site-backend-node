@@ -1,9 +1,10 @@
 'use strict';
 let requestify      = require('requestify'),
+    config = require('../config'),
     MBPCredentials  = {};
 
 MBPCredentials  = {
-    Endpoint: 'http://testdealerservices.mbpnetwork.com', //'https://dealerservices.mbpnetwork.com'
+    Endpoint: (config.mbp.dev ? config.mbp.host_dev : config.mbp.host),
     DealerCode: '012065',
     AccountUsername: 'tirekickers',
     AccountPassword: 'WERQ890XcvzYD!',

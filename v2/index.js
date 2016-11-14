@@ -1,21 +1,32 @@
 'use strict';
 let express     = require('express'),
     app         = express.Router(),
+    config      = require('./config'),
+    mongoose    = require('mongoose'),
+    Request     = require('./models/request'),
+    Vehicle     = require('./controllers/vehicle');
 
-    Vehicle    = require('./controllers/vehicle');
+mongoose.connect(config.endpoint);
 
 //TODO: request id and logging
 app.use((req, res, next) => {
-    req.request_id = 'TODO';
-    res.setHeader('X-Request-ID', req.request_id);
+    let request = new Request({
+        url: req.url,
+        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    });
 
-    var send = res.json;
-    res.json = function (body) {
-        body.request_id = req.request_id;
-        send.call(this, body);
-    };
+    request.save(function (err, result) {
+        req.request_id = result._id;
+        res.setHeader('X-Request-ID', req.request_id);
 
-    next();
+        var send = res.json;
+        res.json = function (body) {
+            body.request_id = req.request_id;
+            send.call(this, body);
+        };
+
+        next();
+    });
 });
 
 app.route('/').get((req, res) => {
