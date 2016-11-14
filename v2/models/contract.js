@@ -6,6 +6,10 @@ var ContractSchema = new mongoose.Schema({
         required: true,
         type: Number
     },
+    id: {
+        required: true,
+        type: Number
+    },
     
     blob: {
         required: true,

@@ -397,8 +397,6 @@ module.exports.GetQuote = (req, res, turbo) => {
         let plans = quote.Programs[0].Plans,
             options = {};
 
-        console.log(plans);
-
         //Months
         for (var n = 0; n < plans.length; n++) {
             if (options[(plans[n].CoverageMonths.toString())] !== undefined)
@@ -476,15 +474,14 @@ module.exports.GetBuy = (req, res, quote) => {
         }
 
         return MBPM.request('getquote', params, (err, quote) => {
-            console.log(quote);
-            console.log(err);
-
-            if (err)
+            if (err) {
+                console.log(err);
                 return res.json({
                     status: 500,
                     error: 'car != vin',
                     error_message: 'The selected car doesn\'t match the VIN.'
                 });
+            }
 
             return module.exports.GetBuy(req, res, quote);
         });
@@ -493,8 +490,16 @@ module.exports.GetBuy = (req, res, quote) => {
     
     //const Signature = req.query.signature.split(',')[1];
     
+    //TODO: Monthly card
     let down_payment_card =  {
-
+        AccountPaymentType: 'CreditCard',
+        CreditCardType: credit_card_typ(req.query.down_number.replace(/\D/g, '')),
+        CardHolderName: req.query.down_first_name + ' ' + req.query.down_last_name,
+        AccountNumber: req.query.down_number.replace(/\D/g, ''),
+        ExpirationMonth: req.query.down_month,
+        ExpirationYear: req.query.down_year,
+        UseForDownPayment: true,
+        UseForMonthlyPayment: true, //TODO
     };
     let params = {
         QuoteResponseID:        req.query.quote_id,
@@ -534,12 +539,15 @@ module.exports.GetBuy = (req, res, quote) => {
     }
 
     MBPM.request('purchasecontract', params, (err, result) => {
-        if (err)
+        if (err) {
+            console.log(err);
+
             return res.json({
                 status: 500,
                 error: err,
                 error_message: 'Something went wrong on mbpnetwork\'s end.'
             });
+        }
         
         //TODO: Monthly
 
@@ -573,21 +581,28 @@ module.exports.GetBuy = (req, res, quote) => {
             } else {
                 //TODO: Find or create
                 let user = new User({
-                    email: req.query.user_email
+                    email: req.query.user_email,
+                    first_name: req.query.user_first_name,
+                    last_name: req.query.user_last_name,
+                    phone: req.query.user_phone,
                 });
-                user.save((err, result) => {
+
+                user.save((err, user) => {
                     let contract = new Contract({
                         _id: result.GeneratedContracts[0].ContractNumber,
+                        id: result.GeneratedContracts[0].ContractNumber,
                         blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
-                        signature: null, //TODO
+                        signature: req.query.signature,
 
-                        user: result, //Point to user
+                        user: user._id, //Point to user
                     });
                     contract.save(function (err, result) {
                         const contract = {
                             blob: new Buffer(result.blob, 'base64'),
                             id: result._id
                         };
+
+                        console.log(contract.id);
 
                         //TODO
                         return res.json({
@@ -608,13 +623,50 @@ module.exports.GetBuy = (req, res, quote) => {
 }
 
 module.exports.GetCompleted = (req, res) => {
-    //TODO: Auth?
+    Contract.find({ id: req.query.id })
+    .populate('user')
+    .exec((err, contracts) => {
+        const contract = contracts[0];
+        let emailjs = require('./email.js');
 
+        emailjs.sendEmail('purchase', 'YOUR FORCEFIELD HAS BEEN ACTIVATED', {
+            name: contract.user.first_name + ' ' + contract.user.last_name,
+            email: contract.user.email
+        }, {
+            full_name: (contract.user.first_name + ' ' + contract.user.last_name).toUpperCase(),
+            contract_url: 'https://api.illdrive.it/v2/vehicle/info/contract?id=' + contract.id,
+            receipt_url: 'https://illdrive.it/receipt/#' + contract.id,
+                email: contract.user.email
+        }, (err) => {
+            if (err)
+                //TODO: Handle error
+                return res.json({
+                    status: 505,
+                    error: err
+                });
+
+            res.json({
+                status: 200
+            });
+
+            console.log('Email sent to ' + contract.user.email);
+        });
+    });
 }
 
 module.exports.GetContract = (req, res) => {
     //TODO: Auth?
+    Contract.find({ id: req.query.id }, (cerr, contracts) => {
+        const contract = contracts[0];
+        const Ctr = new Buffer(contract.blob, 'base64');
 
+        res.writeHead(200, {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename=contract_' + req.query.id + '.pdf',
+            'Content-Length': Ctr.length
+        });
+        res.end(Ctr);
+    })
 }
 
 
