@@ -634,7 +634,7 @@ module.exports.GetCompleted = (req, res) => {
             email: contract.user.email
         }, {
             full_name: (contract.user.first_name + ' ' + contract.user.last_name).toUpperCase(),
-            contract_url: 'https://api.illdrive.it/v2/vehicle/info/contract?id=' + contract.id,
+            contract_url: 'https://api.illdrive.it/api/v2/vehicle/info/contract?id=' + contract.id,
             receipt_url: 'https://illdrive.it/receipt/#' + contract.id,
                 email: contract.user.email
         }, (err) => {
