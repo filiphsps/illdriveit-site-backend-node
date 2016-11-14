@@ -12,5 +12,11 @@ var ContractSchema = new mongoose.Schema({
         type: String
     },
 
+
+    user: {
+        require: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }
 });
 module.exports = mongoose.model('Contract', ContractSchema);

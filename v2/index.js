@@ -51,7 +51,9 @@ app.route('/vehicle/info/quote')
 app.route('/vehicle/info/buy')
     .get(Vehicle.GetBuy);
 app.route('/vehicle/info/contract')
-    .get(Vehicle.GetQuote);
+    .get(Vehicle.GetContract);
+app.route('/vehicle/info/completed')
+    .get(Vehicle.GetCompleted);
 
 app.get('*', function(req, res){
     res.status(404).json({

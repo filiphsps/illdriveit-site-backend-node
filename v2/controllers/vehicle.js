@@ -1,8 +1,9 @@
 'use strict';
-let MBPM = require('./mbpn'),
-    config = require('../config'),
-    Contract = require('../models/contract');
-let stripe = require('stripe')(config.stripe.dev ? config.stripe.key_dev : config.stripe.key);
+let MBPM        = require('./mbpn'),
+    config      = require('../config'),
+    User        = require('../models/user'),
+    Contract    = require('../models/contract');
+let stripe      = require('stripe')(config.stripe.dev ? config.stripe.key_dev : config.stripe.key);
 
 
 // GET /vehicle/info/make
@@ -570,31 +571,45 @@ module.exports.GetBuy = (req, res, quote) => {
                 });
 
             } else {
-                let contract = new Contract({
-                    _id: result.GeneratedContracts[0].ContractNumber,
-                    blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
+                //TODO: Find or create
+                let user = new User({
+                    email: req.query.user_email
                 });
-                contract.save(function (err, result) {
-                    const contract = {
-                        blob: new Buffer(result.blob, 'base64'),
-                        id: result._id
-                    };
+                user.save((err, result) => {
+                    let contract = new Contract({
+                        _id: result.GeneratedContracts[0].ContractNumber,
+                        blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
+                        signature: null, //TODO
 
-                    //TODO
-                    return res.json({
-                        status: 200,
-                        data: {
-                            contract_id: contract.id,
-                            contract_url: 'vehicle/info/contract/' + contract.id,
-                            contract_filetype: 'pdf',
-                            
-                            state: require('cities').zip_lookup(req.query.user_zip).state_abbr,
-                        }
+                        user: result, //Point to user
                     });
-                });
+                    contract.save(function (err, result) {
+                        const contract = {
+                            blob: new Buffer(result.blob, 'base64'),
+                            id: result._id
+                        };
+
+                        //TODO
+                        return res.json({
+                            status: 200,
+                            data: {
+                                contract_id: contract.id,
+                                contract_url: 'vehicle/info/contract/' + contract.id,
+                                contract_filetype: 'pdf',
+                                
+                                state: require('cities').zip_lookup(req.query.user_zip).state_abbr,
+                            }
+                        });
+                    });
+                })
             }
         });
     });
+}
+
+module.exports.GetCompleted = (req, res) => {
+    //TODO: Auth?
+
 }
 
 module.exports.GetContract = (req, res) => {
