@@ -351,6 +351,13 @@ module.exports.GetQuote = (req, res, turbo) => {
             error: 'miles is undefined',
             error_message: 'The miles is required.'
         });
+    if (!req.query.zip && supportedZip(req.query.zip))
+        return res.json({
+            status: 500,
+            error: 'zip is undefined',
+            error_message: 'The zip is required.'
+        });
+
     
     let params = {
         VehicleYear: req.query.year,
@@ -429,7 +436,8 @@ module.exports.GetQuote = (req, res, turbo) => {
 
         res.json({
             status: 200,
-            data: result
+            data: result,
+            state: require('cities').zip_lookup(req.query.zip).state_abbr
         });
     });
 }
@@ -442,8 +450,6 @@ module.exports.GetQuote = (req, res, turbo) => {
 module.exports.GetBuy = (req, res, quote) => {
     if (typeof(quote) !== 'object')
         quote = null;
-    
-    console.log(req.query);
     
     if (!req.query.miles)
         return res.json({
@@ -581,10 +587,11 @@ module.exports.GetBuy = (req, res, quote) => {
                             contract_id: contract.id,
                             contract_url: 'vehicle/info/contract/' + contract.id,
                             contract_filetype: 'pdf',
+                            
+                            state: require('cities').zip_lookup(req.query.user_zip).state_abbr,
                         }
                     });
                 });
-
             }
         });
     });
@@ -598,6 +605,48 @@ module.exports.GetContract = (req, res) => {
 
 /* Helper functions
 ======================================================== */
+
+// supportedZip
+//
+// Checks if a zip is supported
+function supportedZip (zip) {
+    let states = new Set([
+		'IL',   //Illinois
+		'OR',   //Oregon
+		'NV',   //Nevada
+		'CO',   //Colorado
+		'WA',   //Washington
+		'DE',   //Delaware
+		'ID',   //Idaho
+		'IN',   //Indiana
+		'KS',   //Kansas
+		'KY',   //Kentucky
+		'MA',   //Massachusetts
+		'MI',   //Michigan
+		'MT',   //Montana
+		'NJ',   //New Jersey
+		'ND',   //North Dakota
+		'OH',   //Ohio
+		'PA',   //Pennsylvania
+		'RI',   //Rhode Island
+		'SD',   //South Dakota
+		'TN',   //Tennessee
+		'WV',   //West Virginia
+		'TX',   //Texas
+		'FL',   //Florida
+		'AR',   //Arkansas
+		'ME',   //Maine
+		'NH',   //New Hampshire
+		'VT',   //Vermont
+		'MS',   //Mississippi
+		'GA',   //Georgia
+		'NE',   // Nebraska
+		'UT',   // Utah
+		'VA',   // Virginia
+		'AL',   // Alabama
+    ]);
+    return states.has(state);
+}
 
 // remove_motorcycles
 // motorcycles: array, the motorcycles array
