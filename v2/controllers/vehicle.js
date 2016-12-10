@@ -359,7 +359,7 @@ module.exports.GetQuote = (req, res, turbo) => {
             error_message: 'The zip is required.'
         });
     
-    if (supportedZip(req.query.zip))
+    if (!supportedZip(req.query.zip))
         return res.json({
             status: 200,
             error: 'UNSUPPORTED_ZIP',
@@ -726,7 +726,7 @@ function supportedZip (zip) {
 		'VA',   // Virginia
 		'AL',   // Alabama
     ]);
-    return states.has(state);
+    return states.has(require('cities').zip_lookup(zip).state_abbr.toUpperCase());
 }
 
 // remove_motorcycles
