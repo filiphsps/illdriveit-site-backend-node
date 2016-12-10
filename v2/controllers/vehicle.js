@@ -352,11 +352,18 @@ module.exports.GetQuote = (req, res, turbo) => {
             error: 'miles is undefined',
             error_message: 'The miles is required.'
         });
-    if (!req.query.zip && supportedZip(req.query.zip))
+    if (!req.query.zip)
         return res.json({
             status: 500,
             error: 'zip is undefined',
             error_message: 'The zip is required.'
+        });
+    
+    if (supportedZip(req.query.zip))
+        return res.json({
+            status: 200,
+            error: 'UNSUPPORTED_ZIP',
+            error_message: 'We\'re working on supporting your state. Check back later.'
         });
 
     
@@ -461,6 +468,13 @@ module.exports.GetBuy = (req, res, quote) => {
             status: 500,
             error: 'vin is undefined',
             error_message: 'The vin is required.'
+        });
+    
+    if (req.query.plan_months && req.query.plan_months > 0)
+        return res.json({
+            status: 500,
+            error: 'plan months unsupported',
+            error_message: 'Monthly payment is currently unsupported, sorry about that :/'
         });
     
     //Get plans from VIN, if it doesnt match; pick the closest one.
@@ -764,6 +778,9 @@ function remove_motorcycles (motorcycles) {
 //
 // Adds FinanceOptions array to every plan
 function calc_finance_options (plans, quote_id) {
+    //Disable financing
+    return plans;
+
     let terms = {
         '12': [6],
         '24': [6, 12],
