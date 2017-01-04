@@ -470,13 +470,6 @@ module.exports.GetBuy = (req, res, quote) => {
             error_message: 'The vin is required.'
         });
     
-    if (req.query.plan_months && req.query.plan_months > 0)
-        return res.json({
-            status: 500,
-            error: 'plan months unsupported',
-            error_message: 'Monthly payment is currently unsupported, sorry about that :/'
-        });
-    
     //Get plans from VIN, if it doesnt match; pick the closest one.
     if (!quote) {
         let params = {
@@ -503,18 +496,9 @@ module.exports.GetBuy = (req, res, quote) => {
 
     
     //const Signature = req.query.signature.split(',')[1];
+    const MONTHLY = (req.query.plan_months ? true : false);
     
     //TODO: Monthly card
-    let down_payment_card =  {
-        AccountPaymentType: 'CreditCard',
-        CreditCardType: credit_card_typ(req.query.down_number.replace(/\D/g, '')),
-        CardHolderName: req.query.down_first_name + ' ' + req.query.down_last_name,
-        AccountNumber: req.query.down_number.replace(/\D/g, ''),
-        ExpirationMonth: req.query.down_month,
-        ExpirationYear: req.query.down_year,
-        UseForDownPayment: true,
-        UseForMonthlyPayment: true, //TODO
-    };
     let params = {
         QuoteResponseID:        req.query.quote_id,
         VIN:                    req.query.vin,
@@ -548,8 +532,22 @@ module.exports.GetBuy = (req, res, quote) => {
                 FirstPaymentDate: mbpi_first_payment_date((new Date())),
                 MBPFinancePlanType: mbpi_months_to_string(req.query.plan_months)
             },
-            MBPFinanceAccountPayments: ((!req.query.plan_months) ? null : [down_payment_card, down_payment_card])
+            MBPFinanceAccountPayments: null
         }],
+    }
+
+    //Handle monthly
+    if (MONTHLY) {
+        params.Plans[0].MBPFinanceAccountPayments = {
+            AccountPaymentType: 'CreditCard',
+            CreditCardType: credit_card_typ(req.query.down_number.replace(/\D/g, '')),
+            CardHolderName: req.query.down_first_name + ' ' + req.query.down_last_name,
+            AccountNumber: req.query.down_number.replace(/\D/g, ''),
+            ExpirationMonth: req.query.down_month,
+            ExpirationYear: req.query.down_year,
+            UseForDownPayment: false,
+            UseForMonthlyPayment: true,
+        }
     }
 
     MBPM.request('purchasecontract', params, (err, result) => {
@@ -565,74 +563,41 @@ module.exports.GetBuy = (req, res, quote) => {
         
         //TODO: Monthly
 
-        stripe.charges.create({
-            amount: req.query.plan_price,
-            currency: 'usd',
-            receipt_email: req.query.user_email,
+        if (!MONTHLY) {
+            stripe.charges.create({
+                amount: req.query.plan_price,
+                currency: 'usd',
+                receipt_email: req.query.user_email,
 
-            source: {
-                exp_month: req.query.down_month,
-                exp_year: req.query.down_year,
-                number: req.query.down_number.replace(/\D/g, ''),
-                cvc: req.query.down_ccv,
-                object: 'card',
-            },
+                source: {
+                    exp_month: req.query.down_month,
+                    exp_year: req.query.down_year,
+                    number: req.query.down_number.replace(/\D/g, ''),
+                    cvc: req.query.down_ccv,
+                    object: 'card',
+                },
 
-            description: 'Downpayment on warranty for ' + req.query.user_first_name + ' ' + req.query.user_last_name,
-        }, (err, charge) => {
-            if (err) {
-                // The card has been declined
-                console.log("card declined: ", err.raw, " for ", charge);
-                
-                //Error
-                //TODO: Remove contract
-                return res.json({
-                    status: 500,
-                    error: 'card_declined',
-                    error_message: 'The card was declined.'
-                });
-
-            } else {
-                //TODO: Find or create
-                let user = new User({
-                    email: req.query.user_email,
-                    first_name: req.query.user_first_name,
-                    last_name: req.query.user_last_name,
-                    phone: req.query.user_phone,
-                });
-
-                user.save((err, user) => {
-                    let contract = new Contract({
-                        _id: result.GeneratedContracts[0].ContractNumber,
-                        id: result.GeneratedContracts[0].ContractNumber,
-                        blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
-                        signature: req.query.signature,
-
-                        user: user._id, //Point to user
-                    });
-                    contract.save(function (err, result) {
-                        const contract = {
-                            blob: new Buffer(result.blob, 'base64'),
-                            id: result._id
-                        };
-
-                        console.log(contract.id);
-
-                        //TODO
+                description: 'Downpayment on warranty for ' + req.query.user_first_name + ' ' + req.query.user_last_name,
+            }, (err, charge) => {
+                if (err) {
+                    // The card has been declined
+                    console.log("card declined: ", err.raw, " for ", charge);
+                    
+                    //Error
+                    void_contract(result, (err, result) => {
                         return res.json({
-                            status: 200,
-                            data: {
-                                contract_id: contract.id,
-                                contract_url: 'vehicle/info/contract/' + contract.id,
-                                contract_filetype: 'pdf',
-                                
-                                state: require('cities').zip_lookup(req.query.user_zip).state_abbr,
-                            }
+                            status: 500,
+                            error: 'card_declined',
+                            error_message: 'The card was declined.'
                         });
                     });
-                })
-            }
-        });
+                } else {
+                    complete_payment(res, req, result);
+                }
+            });
+        } else {
+            complete_payment(res, req, result);
+        }
     });
 }
 
@@ -686,6 +651,66 @@ module.exports.GetContract = (req, res) => {
 
 /* Helper functions
 ======================================================== */
+
+// complete_payment
+function complete_payment (res, req, result) {
+    //TODO: Find or create
+    let user = new User({
+        email: req.query.user_email,
+        first_name: req.query.user_first_name,
+        last_name: req.query.user_last_name,
+        phone: req.query.user_phone,
+    });
+
+    user.save((err, user) => {
+        let contract = new Contract({
+            _id: result.GeneratedContracts[0].ContractNumber,
+            id: result.GeneratedContracts[0].ContractNumber,
+            blob: result.GeneratedContracts[0].ContractDocument.toString('ascii'),
+            signature: req.query.signature,
+
+            user: user._id, //Point to user
+        });
+        contract.save(function (err, result) {
+            const contract = {
+                blob: new Buffer(result.blob, 'base64'),
+                id: result._id
+            };
+
+            console.log(contract.id);
+
+            //TODO
+            return res.json({
+                status: 200,
+                data: {
+                    contract_id: contract.id,
+                    contract_url: 'vehicle/info/contract/' + contract.id,
+                    contract_filetype: 'pdf',
+                    
+                    state: require('cities').zip_lookup(req.query.user_zip).state_abbr,
+                }
+            });
+        });
+    })
+}
+
+// void_contract
+function void_contract (purchase, callback) {
+    MBPM.request('voidcontract', {
+        PurchaseResponseID: purchase.ResponseID,
+        VoidContracts: [{
+            ContractNumber: purchase.GeneratedContracts[0].ContractNumber,
+            VoidReason: 'UnableToFund'
+        }]
+    }, (err, result) => {
+        if (err)
+            console.log(err);
+        else
+            console.log(result);
+
+        callback(err, result);
+    });
+}
 
 // supportedZip
 //
@@ -779,7 +804,7 @@ function remove_motorcycles (motorcycles) {
 // Adds FinanceOptions array to every plan
 function calc_finance_options (plans, quote_id) {
     //Disable financing
-    return plans;
+    //return plans;
 
     let terms = {
         '12': [6],
