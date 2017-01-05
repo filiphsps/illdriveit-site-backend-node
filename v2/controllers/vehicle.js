@@ -545,7 +545,7 @@ module.exports.GetBuy = (req, res, quote) => {
             AccountNumber: req.query.down_number.replace(/\D/g, ''),
             ExpirationMonth: req.query.down_month,
             ExpirationYear: req.query.down_year,
-            UseForDownPayment: false,
+            UseForDownPayment: true,
             UseForMonthlyPayment: true,
         }
     }
