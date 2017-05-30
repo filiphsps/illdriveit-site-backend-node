@@ -2,7 +2,8 @@
 let express     = require("express"),
     bodyParser  = require("body-parser"),
     db          = require('./db.js'),
-    warranty    = require('./warranty.js')
+    warranty    = require('./warranty.js'),
+    log         = require('./v2/controllers/log.js').log;
 let app         = express();
 
 var urlencodedParser = bodyParser.urlencoded({ extended: false })
@@ -32,11 +33,11 @@ app.get('/', (req, res) => {
 db.initDB(() => {
     app.listen(8800/*, "localhost"*/);
 }, (err) => {
-    console.log('Unable to connect to the database: ', err);
+    log('Unable to connect to the database: ' + err, 3);
     throw new Error(err);
 });
 
 //Make sure we recover if we for some reason crash
 process.on('uncaughtException', function(err) {
-    console.log(err);
+    log(err, 2)
 });

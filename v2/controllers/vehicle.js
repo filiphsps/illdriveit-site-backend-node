@@ -2,7 +2,8 @@
 let MBPM        = require('./mbpn'),
     config      = require('../config'),
     User        = require('../models/user'),
-    Contract    = require('../models/contract');
+    Contract    = require('../models/contract'),
+    log         = require('./log').log;
 let stripe      = require('stripe')(config.stripe.dev ? config.stripe.key_dev : config.stripe.key);
 
 
@@ -482,7 +483,6 @@ module.exports.GetBuy = (req, res, quote) => {
 
         return MBPM.request('getquote', params, (err, quote) => {
             if (err) {
-                console.log(err);
                 return res.json({
                     status: 500,
                     error: 'car != vin',
@@ -552,7 +552,7 @@ module.exports.GetBuy = (req, res, quote) => {
 
     MBPM.request('purchasecontract', params, (err, result) => {
         if (err) {
-            console.log(err);
+            log(err, 2);
 
             return res.json({
                 status: 500,
@@ -581,9 +581,6 @@ module.exports.GetBuy = (req, res, quote) => {
             }, (err, charge) => {
                 if (err) {
                     // The card has been declined
-                    console.log("card declined: ", err.raw, " for ", charge);
-                    
-                    //Error
                     void_contract(result, (err, result) => {
                         return res.json({
                             status: 500,
@@ -628,7 +625,7 @@ module.exports.GetCompleted = (req, res) => {
                 status: 200
             });
 
-            console.log('Email sent to ' + contract.user.email);
+            log('Email sent to ' + contract.user.email);
         });
     });
 }
@@ -677,7 +674,7 @@ function complete_payment (res, req, result) {
                 id: result._id
             };
 
-            console.log(contract.id);
+            log('Created contract with id: ' + contract.id);
 
             //TODO
             return res.json({
@@ -704,9 +701,9 @@ function void_contract (purchase, callback) {
         }]
     }, (err, result) => {
         if (err)
-            console.log(err);
+            log(err, 2);
         else
-            console.log(result);
+            log('Voided contract (' + result + ')');
 
         callback(err, result);
     });
